@@ -80,14 +80,39 @@ export async function createTournament(draft: TournamentDraft) {
     if (playersError) throw playersError;
   }
 
-  const { error: matchesError } = await supabase.from("matches").insert(
-    Array.from({ length: draft.totalMatches }, (_, index) => ({
-      tournament_id: tournament.id,
-      match_number: index + 1,
-      status: "PENDING",
+  const { data: matches, error: matchesError } = await supabase
+    .from("matches")
+    .insert(
+      Array.from({ length: draft.totalMatches }, (_, index) => ({
+        tournament_id: tournament.id,
+        match_number: index + 1,
+        status: "PENDING",
+        input_mode: "MANUAL",
+      })),
+    )
+    .select("id, match_number");
+
+  if (matchesError) throw matchesError;
+
+  const matchTeamRows = (matches ?? []).flatMap((match) =>
+    (insertedTeams ?? []).map((team) => ({
+      match_id: match.id,
+      team_id: team.id,
+      kills: 0,
+      placement: null,
+      kill_points: 0,
+      position_points: 0,
+      total_points: 0,
+      elimination_status: "ALIVE",
     })),
   );
-  if (matchesError) throw matchesError;
+
+  if (matchTeamRows.length) {
+    const { error: stateError } = await supabase
+      .from("match_team_state")
+      .insert(matchTeamRows);
+    if (stateError) throw stateError;
+  }
 
   const { error: sessionError } = await supabase.from("broadcast_sessions").insert({
     tournament_id: tournament.id,
