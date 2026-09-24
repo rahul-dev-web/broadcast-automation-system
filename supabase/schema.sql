@@ -157,3 +157,7 @@ create index if not exists idx_ocr_results_match_status on public.ocr_results(ma
 create index if not exists idx_broadcast_sessions_tournament on public.broadcast_sessions(tournament_id);
 
 create index if not exists idx_matches_input_mode on public.matches(tournament_id, input_mode);
+
+create index if not exists idx_match_team_state_current_player on public.match_team_state(current_player_id);
+create index if not exists idx_match_team_state_team on public.match_team_state(team_id);
+create index if not exists idx_scoring_events_team on public.scoring_events(team_id);
