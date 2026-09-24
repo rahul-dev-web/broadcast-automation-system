@@ -13,9 +13,9 @@ export const POSITION_POINTS: Record<number, number> = {
   12: 0,
 };
 
-export function calculateMatchPoints(kills: number, placement: number) {
+export function calculateMatchPoints(kills: number, placement: number | null) {
   const safeKills = Math.max(0, Math.floor(kills));
-  const positionPoints = POSITION_POINTS[placement] ?? 0;
+  const positionPoints = placement === null ? 0 : POSITION_POINTS[placement] ?? 0;
 
   return {
     killPoints: safeKills,
@@ -25,20 +25,31 @@ export function calculateMatchPoints(kills: number, placement: number) {
 }
 
 /**
- * Build placements once the full elimination order is known.
- * The last eliminated team is 2nd and the final surviving team is 1st.
+ * Derive placements from the order in which active teams are eliminated.
+ * The last remaining team is 1st. This works for tournaments with fewer than 12 active teams.
  */
 export function getPlacementOrderFromEliminationOrder(
   eliminatedTeamIds: string[],
   winnerTeamId: string,
+  activeTeamCount: number = eliminatedTeamIds.length + 1,
 ): Record<string, number> {
+  const teamCount = Math.max(1, Math.min(12, activeTeamCount));
   const result: Record<string, number> = {};
 
   eliminatedTeamIds.forEach((teamId, index) => {
-    result[teamId] = 12 - index;
+    result[teamId] = teamCount - index;
   });
 
   result[winnerTeamId] = 1;
-
   return result;
+}
+
+export function isPresentationPointTableVisible(
+  mode: "PER_MATCH" | "OVERALL_ONLY" | "CUSTOM",
+  matchNumber: number,
+  customMatches: number[],
+) {
+  if (mode === "PER_MATCH") return true;
+  if (mode === "OVERALL_ONLY") return false;
+  return customMatches.includes(matchNumber);
 }
