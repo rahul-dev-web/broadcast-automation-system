@@ -42,6 +42,7 @@ create table if not exists public.matches (
   tournament_id uuid not null references public.tournaments(id) on delete cascade,
   match_number integer not null check (match_number between 1 and 50),
   status text not null default 'PENDING' check (status in ('PENDING', 'LIVE', 'REVIEW', 'VERIFIED')),
+  input_mode text not null default 'MANUAL' check (input_mode in ('MANUAL', 'OCR')),
   started_at timestamptz,
   ended_at timestamptz,
   verified_at timestamptz,
@@ -154,3 +155,5 @@ create index if not exists idx_match_team_state_match on public.match_team_state
 create index if not exists idx_scoring_events_match_sequence on public.scoring_events(match_id, sequence_no);
 create index if not exists idx_ocr_results_match_status on public.ocr_results(match_id, status);
 create index if not exists idx_broadcast_sessions_tournament on public.broadcast_sessions(tournament_id);
+
+create index if not exists idx_matches_input_mode on public.matches(tournament_id, input_mode);
