@@ -24,9 +24,13 @@ export function calculateMatchPoints(kills: number, placement: number) {
   };
 }
 
-export function getPlacementOrderFromEliminations(
+/**
+ * Build placements once the full elimination order is known.
+ * The last eliminated team is 2nd and the final surviving team is 1st.
+ */
+export function getPlacementOrderFromEliminationOrder(
   eliminatedTeamIds: string[],
-  remainingTeamIds: string[],
+  winnerTeamId: string,
 ): Record<string, number> {
   const result: Record<string, number> = {};
 
@@ -34,9 +38,7 @@ export function getPlacementOrderFromEliminations(
     result[teamId] = 12 - index;
   });
 
-  remainingTeamIds.forEach((teamId, index) => {
-    result[teamId] = remainingTeamIds.length - index;
-  });
+  result[winnerTeamId] = 1;
 
   return result;
 }
