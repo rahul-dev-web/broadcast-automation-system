@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import type { PresentationMode, TeamDraft } from "@/lib/types/tournament";
+import type { PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
+import { createTournament } from "@/lib/tournament-repository";
 
 const MAX_TEAMS = 12;
 const PLAYER_SLOTS = 5;
@@ -30,6 +31,9 @@ export function TournamentBuilder() {
     Array.from({ length: MAX_TEAMS }, (_, index) => createEmptyTeam(index + 1)),
   );
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [createdTournamentId, setCreatedTournamentId] = useState<string | null>(null);
 
   const modeDescription = useMemo(() => {
     if (presentationMode === "PER_MATCH") {
@@ -74,13 +78,34 @@ export function TournamentBuilder() {
     );
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+    setSaved(false);
+    setCreatedTournamentId(null);
+
     if (presentationMode === "CUSTOM" && customMatches.length === 0) {
-      setSaved(false);
+      setError("Select at least one match for Custom PT mode.");
       return;
     }
-    setSaved(true);
+
+    setSaving(true);
+    try {
+      const draft: TournamentDraft = {
+        name,
+        totalMatches,
+        presentationMode,
+        customMatches,
+        teams,
+      };
+      const tournamentId = await createTournament(draft);
+      setCreatedTournamentId(tournamentId);
+      setSaved(true);
+    } catch (submissionError) {
+      setError(submissionError instanceof Error ? submissionError.message : "Could not save tournament.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -100,9 +125,10 @@ export function TournamentBuilder() {
 
       {saved && (
         <div className="success-banner">
-          Configuration saved locally for this foundation prototype. Database persistence is the next integration phase.
+          Tournament saved to Supabase. ID: {createdTournamentId}
         </div>
       )}
+      {error && <div className="error-banner">{error}</div>}
 
       <section className="panel">
         <div className="section-title">
