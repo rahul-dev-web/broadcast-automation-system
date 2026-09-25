@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
-import { calculateMatchPoints, getPlacementOrderFromEliminationOrder } from "@/lib/scoring";
+import { calculateMatchPoints } from "@/lib/scoring";
 import { openMatchLiveStage, openMatchReviewStage } from "@/lib/broadcast-controller";
 
 export interface MatchConsoleTeam {
