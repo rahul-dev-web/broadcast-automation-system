@@ -97,6 +97,7 @@ export async function advanceAfterVerifiedMatch(
     return openRoomStage(tournamentId, matchNumber + 1);
   }
 
+  await supabase.from("tournaments").update({ status: "COMPLETED" }).eq("id", tournamentId);
   return openOverallStage(tournamentId);
 }
 
@@ -109,6 +110,7 @@ export async function advanceAfterPt(
     return openRoomStage(tournamentId, matchNumber + 1);
   }
 
+  await supabase.from("tournaments").update({ status: "COMPLETED" }).eq("id", tournamentId);
   return openOverallStage(tournamentId);
 }
 
