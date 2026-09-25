@@ -913,3 +913,24 @@ kbd {
   .overall-rank { font-size: 18px; }
   .overall-total { font-size: 17px; }
 }
+
+
+.pt-table { display: grid; gap: 8px; margin-top: 18px; }
+.pt-row {
+  display: grid;
+  grid-template-columns: 70px minmax(180px,1fr) 110px 90px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+}
+.pt-place { color: #b8b0ff; font-size: 21px; }
+.pt-row > div strong, .pt-row > div span { display: block; }
+.pt-row > div span { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.pt-total { text-align: right; font-size: 22px; }
+@media (max-width: 760px) {
+  .pt-row { grid-template-columns: 40px minmax(120px,1fr) 70px 55px; gap: 8px; padding: 10px; font-size: 10px; }
+  .pt-place, .pt-total { font-size: 17px; }
+}
