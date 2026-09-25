@@ -111,7 +111,7 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
   } else if (data.currentStage === "ROSTER_2") {
     actionButtons.push({ label: "CLOSE ROSTER → ROOM", action: () => openRoomStage(tournamentId, 1) });
   } else if (data.currentStage === "MATCH_LIVE") {
-    actionButtons.push({ label: "OPEN MATCH REVIEW", action: async () => { window.location.href = `/matches/review?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`; } });
+    actionButtons.push({ label: "OPEN MATCH CONSOLE", action: async () => { window.location.href = `/matches/manual?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`; } });
   } else if (data.currentStage === "MATCH_REVIEW") {
     actionButtons.push({ label: "OPEN MATCH REVIEW", action: async () => { window.location.href = `/matches/review?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`; } });
   } else if (data.currentStage === "MATCH_VERIFIED") {
