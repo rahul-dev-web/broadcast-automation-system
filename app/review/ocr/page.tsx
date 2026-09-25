@@ -9,7 +9,7 @@ export default function OcrProofPage() {
   const [matchId, setMatchId] = useState("");
   const [teamsJson, setTeamsJson] = useState('[{"teamNumber":1,"teamName":"Team Alpha"},{"teamNumber":2,"teamName":"Team Bravo"}]');
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
