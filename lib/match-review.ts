@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { calculateMatchPoints } from "@/lib/scoring";
+import { openMatchVerifiedStage } from "@/lib/broadcast-controller";
 
 export interface MatchReviewTeam {
   id: string;
@@ -165,4 +166,5 @@ export async function verifyMatchResult(review: MatchReviewData) {
     sequence_no: Date.now(),
   });
   if (eventError) throw eventError;
+  await openMatchVerifiedStage(review.tournamentId, review.matchNumber);
 }
