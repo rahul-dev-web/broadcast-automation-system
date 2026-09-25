@@ -64,6 +64,10 @@ export async function openMatchLiveStage(
   matchNumber: number,
   inputMode: InputMode,
 ) {
+  const current = await getBroadcastSession(tournamentId);
+  if (!current) {
+    await publishBroadcastStage(tournamentId, "ROOM", { matchNumber, bootstrap: true });
+  }
   return transitionBroadcastStage(tournamentId, "MATCH_LIVE", { matchNumber, inputMode });
 }
 
