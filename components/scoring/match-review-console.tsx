@@ -80,6 +80,14 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
               {busy === "verify" ? "VERIFYING…" : "VERIFY & PUBLISH"}
             </button>
           )}
+          <a
+            className="primary-button"
+            href={`/broadcast/control?tournament=${encodeURIComponent(tournamentId)}`}
+          >
+            {data.matchStatus === "VERIFIED" || data.officialResultExists
+              ? "CONTINUE TO BROADCAST CONTROL"
+              : "BACK TO BROADCAST CONTROL"}
+          </a>
         </div>
       </header>
 
