@@ -92,6 +92,12 @@ export async function startManualMatch(matchId: string) {
     .update({ status: "LIVE", input_mode: "MANUAL", started_at: new Date().toISOString() })
     .eq("id", matchId);
   if (error) throw error;
+
+  const { error: tournamentError } = await supabase
+    .from("tournaments")
+    .update({ status: "LIVE" })
+    .eq("id", current.tournament_id);
+  if (tournamentError) throw tournamentError;
   const { data: match } = await supabase.from("matches").select("tournament_id, match_number").eq("id", matchId).single();
   if (!match) throw new Error("Match metadata could not be loaded.");
   await openMatchLiveStage(match.tournament_id, match.match_number, "MANUAL");
@@ -167,6 +173,14 @@ export async function eliminateTeam(match: MatchConsoleData, teamId: string) {
 }
 
 export async function finishManualMatch(matchId: string) {
+  const { data: current, error: currentError } = await supabase
+    .from("matches")
+    .select("status")
+    .eq("id", matchId)
+    .single();
+  if (currentError) throw currentError;
+  if (current.status !== "LIVE") throw new Error("Only a LIVE match can be ended.");
+
   const { data: alive, error: aliveError } = await supabase.from("match_team_state")
     .select("team_id, kills").eq("match_id", matchId).eq("elimination_status", "ALIVE");
   if (aliveError) throw aliveError;
@@ -187,7 +201,6 @@ export async function finishManualMatch(matchId: string) {
   if (error) throw error;
   const { data: match } = await supabase.from("matches").select("tournament_id, match_number").eq("id", matchId).single();
   if (match) {
-    await supabase.from("tournaments").update({ status: "LIVE" }).eq("id", match.tournament_id);
     await openMatchReviewStage(match.tournament_id, match.match_number);
   }
 }
