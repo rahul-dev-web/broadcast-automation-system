@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   advanceAfterPt,
   advanceAfterVerifiedMatch,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/broadcast-controller";
 import { supabase } from "@/lib/supabase/client";
 import type { BroadcastStage } from "@/lib/types/tournament";
+import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 
 interface ControlData {
   tournamentName: string;
@@ -28,6 +29,7 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const channel = useMemo(() => getBroadcastChannel(tournamentId), [tournamentId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,6 +66,20 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    channel.on("broadcast", { event: "state" }, (message) => {
+      const payload = message.payload as BroadcastStatePayload;
+      if (payload.tournamentId !== tournamentId) return;
+      setData((current) => current ? {
+        ...current,
+        currentStage: payload.stage,
+        matchNumber: typeof payload.matchNumber === "number" ? payload.matchNumber : current.matchNumber,
+      } : current);
+    });
+    channel.subscribe();
+    return () => { void channel.unsubscribe(); };
+  }, [channel, tournamentId]);
+
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -94,6 +110,10 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
     actionButtons.push({ label: "SHOW ROSTER · PAGE 2", action: () => setRosterPage(tournamentId, 2) });
   } else if (data.currentStage === "ROSTER_2") {
     actionButtons.push({ label: "CLOSE ROSTER → ROOM", action: () => openRoomStage(tournamentId, 1) });
+  } else if (data.currentStage === "MATCH_LIVE") {
+    actionButtons.push({ label: "OPEN MATCH REVIEW", action: async () => { window.location.href = `/matches/review?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`; } });
+  } else if (data.currentStage === "MATCH_REVIEW") {
+    actionButtons.push({ label: "OPEN MATCH REVIEW", action: async () => { window.location.href = `/matches/review?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`; } });
   } else if (data.currentStage === "MATCH_VERIFIED") {
     actionButtons.push({
       label: showPt ? `SHOW MATCH ${data.matchNumber} PT` : data.matchNumber < data.totalMatches ? `OPEN MATCH ${data.matchNumber + 1} ROOM` : "SHOW OVERALL",
