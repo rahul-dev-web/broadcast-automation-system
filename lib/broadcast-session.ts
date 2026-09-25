@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { publishBroadcastState } from "@/lib/realtime/broadcast";
 import type { BroadcastStage } from "@/lib/types/tournament";
 
 export async function publishBroadcastStage(
@@ -6,7 +7,8 @@ export async function publishBroadcastStage(
   stage: BroadcastStage,
   statePayload: Record<string, unknown> = {},
 ) {
-  const payload = { ...statePayload, stage, updatedAt: new Date().toISOString() };
+  const updatedAt = new Date().toISOString();
+  const payload = { ...statePayload, stage, updatedAt };
 
   const { data: existing, error: readError } = await supabase
     .from("broadcast_sessions")
@@ -18,25 +20,45 @@ export async function publishBroadcastStage(
 
   if (readError) throw readError;
 
+  let sessionId: string;
+
   if (existing?.id) {
     const { error } = await supabase
       .from("broadcast_sessions")
-      .update({ state: stage, state_payload: payload, updated_at: new Date().toISOString() })
+      .update({
+        state: stage,
+        state_payload: payload,
+        updated_at: updatedAt,
+      })
       .eq("id", existing.id);
+
     if (error) throw error;
-    return existing.id;
+    sessionId = existing.id;
+  } else {
+    const { data: created, error } = await supabase
+      .from("broadcast_sessions")
+      .insert({
+        tournament_id: tournamentId,
+        state: stage,
+        state_payload: payload,
+      })
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    sessionId = created.id as string;
   }
 
-  const { data: created, error } = await supabase
-    .from("broadcast_sessions")
-    .insert({
-      tournament_id: tournamentId,
-      state: stage,
-      state_payload: payload,
-    })
-    .select("id")
-    .single();
+  await publishBroadcastState(tournamentId, {
+    stage,
+    matchNumber: typeof statePayload.matchNumber === "number" ? statePayload.matchNumber : undefined,
+    inputMode:
+      statePayload.inputMode === "MANUAL" || statePayload.inputMode === "OCR"
+        ? statePayload.inputMode
+        : undefined,
+    data: statePayload,
+    updatedAt,
+  });
 
-  if (error) throw error;
-  return created.id as string;
+  return sessionId;
 }
