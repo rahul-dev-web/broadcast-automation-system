@@ -57,7 +57,6 @@ export async function publishBroadcastStage(
         ? statePayload.inputMode
         : undefined,
     data: statePayload,
-    updatedAt,
   });
 
   return sessionId;
