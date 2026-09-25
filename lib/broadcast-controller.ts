@@ -83,6 +83,23 @@ export async function openMatchPtStage(tournamentId: string, matchNumber: number
   return transitionBroadcastStage(tournamentId, "MATCH_PT", { matchNumber });
 }
 
+export async function advanceAfterVerifiedMatch(
+  tournamentId: string,
+  matchNumber: number,
+  totalMatches: number,
+  showPt: boolean,
+) {
+  if (showPt) {
+    return openMatchPtStage(tournamentId, matchNumber);
+  }
+
+  if (matchNumber < totalMatches) {
+    return openRoomStage(tournamentId, matchNumber + 1);
+  }
+
+  return openOverallStage(tournamentId);
+}
+
 export async function openOverallStage(tournamentId: string) {
   return transitionBroadcastStage(tournamentId, "OVERALL");
 }
