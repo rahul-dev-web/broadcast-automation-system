@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
 import { createTournament } from "@/lib/tournament-repository";
 
@@ -23,6 +24,8 @@ function createEmptyTeam(teamNumber: number): TeamDraft {
 }
 
 export function TournamentBuilder() {
+  const router = useRouter();
+  const submitLock = useRef(false);
   const [name, setName] = useState("");
   const [totalMatches, setTotalMatches] = useState(6);
   const [presentationMode, setPresentationMode] = useState<PresentationMode>("PER_MATCH");
@@ -80,6 +83,7 @@ export function TournamentBuilder() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
     setError("");
     setSaved(false);
     setCreatedTournamentId(null);
@@ -89,6 +93,7 @@ export function TournamentBuilder() {
       return;
     }
 
+    submitLock.current = true;
     setSaving(true);
     try {
       const draft: TournamentDraft = {
@@ -101,7 +106,9 @@ export function TournamentBuilder() {
       const tournamentId = await createTournament(draft);
       setCreatedTournamentId(tournamentId);
       setSaved(true);
+      router.push(`/broadcast/control?tournament=${encodeURIComponent(tournamentId)}`);
     } catch (submissionError) {
+      submitLock.current = false;
       setError(submissionError instanceof Error ? submissionError.message : "Could not save tournament.");
     } finally {
       setSaving(false);
@@ -118,14 +125,14 @@ export function TournamentBuilder() {
             Configure the event before the live automation session starts.
           </p>
         </div>
-        <button className="primary-button" type="submit">
-          Confirm & Save
+        <button className="primary-button" type="submit" disabled={saving} aria-busy={saving}>
+          {saving ? "Saving Tournament…" : "Confirm & Save"}
         </button>
       </header>
 
-      {saved && (
-        <div className="success-banner">
-          Tournament saved to Supabase. ID: {createdTournamentId}
+      {saved && createdTournamentId && (
+        <div className="success-banner" role="status">
+          Tournament created successfully. Opening its broadcast control…
         </div>
       )}
       {error && <div className="error-banner">{error}</div>}
