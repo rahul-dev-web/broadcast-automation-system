@@ -847,3 +847,32 @@ kbd {
   .manual-team-index kbd { display: none; }
   .console-actions { justify-content: flex-start; }
 }
+
+
+.match-review { display: grid; gap: 20px; }
+.review-banner { display: flex; gap: 14px; align-items: center; }
+.review-banner strong { color: #b8f5e7; letter-spacing: .04em; }
+.review-banner span { color: var(--muted); font-size: 12px; }
+.review-table { display: grid; gap: 7px; margin-top: 18px; }
+.review-head, .review-row { display: grid; grid-template-columns: 70px minmax(180px,1fr) 150px 120px 120px; align-items: center; gap: 12px; }
+.review-head { padding: 0 14px 6px; color: #6f7c90; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.review-row { padding: 12px 14px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.018); }
+.review-place { font-size: 22px; color: #b8b0ff; }
+.review-team strong, .review-team span, .review-points strong, .review-points span { display: block; }
+.review-team span, .review-points span { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.review-kills { display: grid; grid-template-columns: 34px 1fr 34px; gap: 6px; align-items: center; }
+.review-kills button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 8px; color: #d8dfeb; background: #0a0f17; font-size: 18px; }
+.review-kills button:disabled { opacity: .4; cursor: not-allowed; }
+.review-kills strong { text-align: center; font-size: 18px; }
+.review-points strong { font-size: 18px; }
+.review-status { justify-self: start; padding: 6px 9px; border: 1px solid rgba(255,112,112,.25); border-radius: 999px; color: #ffb1b1; background: rgba(255,112,112,.05); font-size: 9px; font-weight: 900; }
+.review-status.alive { border-color: rgba(37,208,165,.3); color: #b8f5e7; background: rgba(37,208,165,.06); }
+.review-pipeline { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 14px; color: #8794a8; font-size: 11px; font-weight: 900; letter-spacing: .06em; }
+.review-pipeline b { color: #5d6b80; }
+.review-pipeline .active { color: #b8f5e7; }
+@media (max-width: 760px) {
+  .review-banner { align-items: flex-start; flex-direction: column; }
+  .review-head { display: none; }
+  .review-row { grid-template-columns: 42px minmax(110px,1fr) 105px; gap: 8px; }
+  .review-points, .review-status { display: none; }
+}
