@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBroadcastChannel } from "@/lib/realtime/broadcast";
-import type { BroadcastStatePayload } from "@/lib/realtime/broadcast";
+import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 
 const initialState: BroadcastStatePayload = {
   stage: "ROOM",
@@ -14,25 +13,14 @@ const initialState: BroadcastStatePayload = {
 };
 
 export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
-  const [state, setState] = useState<BroadcastStatePayload>({
-    ...initialState,
-    tournamentId,
-  });
+  const [state, setState] = useState<BroadcastStatePayload>({ ...initialState, tournamentId });
   const [connection, setConnection] = useState("CONNECTING");
 
   useEffect(() => {
     const channel = getBroadcastChannel(tournamentId);
-
-    channel
-      .on("broadcast", { event: "state" }, (message) => {
-        setState(message.payload as BroadcastStatePayload);
-      })
-      .subscribe((status) => setConnection(status));
-
-    return () => {
-      void channel.unsubscribe();
-      void channel.send({ type: "broadcast", event: "leave", payload: {} }).catch(() => undefined);
-    };
+    channel.on("broadcast", { event: "state" }, (message) => setState(message.payload as BroadcastStatePayload));
+    channel.subscribe((status) => setConnection(status));
+    return () => { void channel.unsubscribe(); };
   }, [tournamentId]);
 
   return (
@@ -42,16 +30,13 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
         <span className="broadcast-kicker">LIVE BROADCAST</span>
         <h1>{state.stage.replaceAll("_", " ")}</h1>
         <p>MATCH {state.matchNumber ?? "—"}</p>
-
         {state.currentPlayer ? (
           <div className="live-player-banner">
             <span>OBSERVED PLAYER</span>
             <strong>{state.currentPlayer.registeredName}</strong>
             <small>{state.currentPlayer.inGameName ?? "Mapped identity"}</small>
           </div>
-        ) : (
-          <p className="muted">Waiting for live state…</p>
-        )}
+        ) : <p className="muted">Waiting for live state…</p>}
       </div>
     </main>
   );
