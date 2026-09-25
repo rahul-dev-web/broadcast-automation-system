@@ -6,16 +6,13 @@ import {
   advanceAfterVerifiedMatch,
   closeBroadcast,
   getBroadcastSession,
-  openMatchLiveStage,
-  openMatchPtStage,
-  openOverallStage,
   openRoomStage,
   openThankYouStage,
   setRosterPage,
   startTournamentBroadcast,
 } from "@/lib/broadcast-controller";
 import { supabase } from "@/lib/supabase/client";
-import type { BroadcastStage, InputMode } from "@/lib/types/tournament";
+import type { BroadcastStage } from "@/lib/types/tournament";
 
 interface ControlData {
   tournamentName: string;
@@ -114,7 +111,6 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
   }
 
   const canOpenManualMatch = data.currentStage === "ROOM";
-  const canOpenLive = data.currentStage === "ROOM";
 
   return (
     <main className="shell">
