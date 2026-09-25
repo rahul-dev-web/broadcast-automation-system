@@ -124,8 +124,8 @@ export async function eliminateTeam(match: MatchConsoleData, teamId: string) {
 
   // Placement is derived from the teams actually participating in this match,
   // not from the global 12-team maximum. This keeps 6/8/10/11-team matches correct.
-  const activeTeamCount = activeTeams.length;
-  const targetPlacement = activeTeamCount - eliminationOrder.length + 1;
+  const participatingTeamCount = activeTeams.length + eliminatedBefore.length;
+  const targetPlacement = participatingTeamCount - eliminationOrder.length + 1;
   const targetPoints = calculateMatchPoints(target.kills, targetPlacement);
 
   const { error: stateError } = await supabase.from("match_team_state")
