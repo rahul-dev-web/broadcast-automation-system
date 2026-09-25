@@ -84,7 +84,9 @@ export async function startManualMatch(matchId: string) {
     .update({ status: "LIVE", input_mode: "MANUAL", started_at: new Date().toISOString() })
     .eq("id", matchId);
   if (error) throw error;
-  await openMatchLiveStage((await supabase.from("matches").select("tournament_id, match_number").eq("id", matchId).single()).data!.tournament_id, (await supabase.from("matches").select("match_number").eq("id", matchId).single()).data!.match_number, "MANUAL");
+  const { data: match } = await supabase.from("matches").select("tournament_id, match_number").eq("id", matchId).single();
+  if (!match) throw new Error("Match metadata could not be loaded.");
+  await openMatchLiveStage(match.tournament_id, match.match_number, "MANUAL");
 }
 
 export async function setTeamKills(matchId: string, team: MatchConsoleTeam, nextKills: number) {
