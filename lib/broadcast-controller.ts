@@ -100,6 +100,18 @@ export async function advanceAfterVerifiedMatch(
   return openOverallStage(tournamentId);
 }
 
+export async function advanceAfterPt(
+  tournamentId: string,
+  matchNumber: number,
+  totalMatches: number,
+) {
+  if (matchNumber < totalMatches) {
+    return openRoomStage(tournamentId, matchNumber + 1);
+  }
+
+  return openOverallStage(tournamentId);
+}
+
 export async function openOverallStage(tournamentId: string) {
   return transitionBroadcastStage(tournamentId, "OVERALL");
 }
