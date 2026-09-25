@@ -11,9 +11,7 @@ export function BroadcastTestPanel({ tournamentId }: { tournamentId: string }) {
 
   useEffect(() => {
     channel.subscribe((nextStatus) => setStatus(nextStatus));
-    return () => {
-      void channel.unsubscribe();
-    };
+    return () => { void channel.unsubscribe(); };
   }, [channel]);
 
   async function sendTestState() {
@@ -31,12 +29,7 @@ export function BroadcastTestPanel({ tournamentId }: { tournamentId: string }) {
       updatedAt: new Date().toISOString(),
     };
 
-    const response = await channel.send({
-      type: "broadcast",
-      event: "state",
-      payload,
-    });
-
+    const response = await channel.send({ type: "broadcast", event: "state", payload });
     setMessage(response === "ok" ? "Broadcast acknowledged." : `Broadcast response: ${response}`);
   }
 
@@ -55,9 +48,7 @@ export function BroadcastTestPanel({ tournamentId }: { tournamentId: string }) {
           <option value="THANK_YOU">THANK YOU</option>
         </select>
       </label>
-      <button type="button" onClick={sendTestState} disabled={status !== "SUBSCRIBED"}>
-        Send Test Broadcast
-      </button>
+      <button type="button" onClick={sendTestState} disabled={status !== "SUBSCRIBED"}>Send Test Broadcast</button>
       <p>{message}</p>
       <p>Overlay URL: <code>/overlay/live?tournament={tournamentId}</code></p>
     </section>
