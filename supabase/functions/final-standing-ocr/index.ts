@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { parseFinalStandingBoxes } from "../../../lib/ocr/final-standing-parser.ts";
+import { parseFinalStandingBoxes } from "../_shared/final-standing-parser.ts";
 
 interface RequestBody {
   matchId: string;
