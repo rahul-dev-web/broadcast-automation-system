@@ -14,29 +14,55 @@ export default function OcrProofPage() {
   const [error, setError] = useState("");
 
   async function runOcr() {
-    setError(""); setResult(null);
-    if (!matchId || !file) { setError("Match ID and screenshot are required."); return; }
+    setError("");
+    setResult(null);
+    if (!matchId || !file) {
+      setError("Match ID and screenshot are required.");
+      return;
+    }
 
     let expectedTeams: ExpectedTeam[];
     try {
       expectedTeams = JSON.parse(teamsJson);
-      if (!Array.isArray(expectedTeams) || expectedTeams.length === 0) throw new Error();
+      if (
+        !Array.isArray(expectedTeams) ||
+        expectedTeams.length === 0 ||
+        expectedTeams.length > 12 ||
+        expectedTeams.some(
+          (team) =>
+            !Number.isInteger(team.teamNumber) ||
+            team.teamNumber < 1 ||
+            team.teamNumber > 12 ||
+            typeof team.teamName !== "string" ||
+            !team.teamName.trim(),
+        )
+      ) {
+        throw new Error();
+      }
     } catch {
-      setError('Expected teams must be valid JSON: [{"teamNumber":1,"teamName":"Team Alpha"}]');
+      setError('Expected teams must be valid JSON with 1–12 teams: [{"teamNumber":1,"teamName":"Team Alpha"}]');
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file.");
       return;
     }
 
     setBusy(true);
     try {
       const imageBase64 = await fileToBase64(file);
-      const { data, error: invokeError } = await supabase.functions.invoke("final-standing-ocr", {
-        body: { matchId, imageBase64, expectedTeams },
-      });
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "final-standing-ocr",
+        { body: { matchId, imageBase64, expectedTeams } },
+      );
       if (invokeError) throw invokeError;
       setResult(data);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "OCR request failed.");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -44,11 +70,37 @@ export default function OcrProofPage() {
       <div className="broadcast-live-stage ocr-proof">
         <span className="broadcast-kicker">PHASE 0 · OCR PROOF</span>
         <h1>Final Standing OCR</h1>
-        <p>One screenshot → OCR proposal. Nothing becomes official on this screen.</p>
-        <label>Match ID<input value={matchId} onChange={(event) => setMatchId(event.target.value)} placeholder="UUID of an existing match" /></label>
-        <label>Expected teams JSON<textarea value={teamsJson} onChange={(event) => setTeamsJson(event.target.value)} rows={7} /></label>
-        <label>Final standing screenshot<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
-        <button type="button" onClick={runOcr} disabled={busy}>{busy ? "Running OCR…" : "Run Final Standing OCR"}</button>
+        <p>
+          One screenshot → OCR proposal. This result is never official until a
+          future review/verification step approves it.
+        </p>
+        <label>
+          Match ID
+          <input
+            value={matchId}
+            onChange={(event) => setMatchId(event.target.value)}
+            placeholder="UUID of an existing match"
+          />
+        </label>
+        <label>
+          Expected teams JSON
+          <textarea
+            value={teamsJson}
+            onChange={(event) => setTeamsJson(event.target.value)}
+            rows={7}
+          />
+        </label>
+        <label>
+          Final standing screenshot
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </label>
+        <button type="button" onClick={runOcr} disabled={busy}>
+          {busy ? "Running OCR…" : "Run Final Standing OCR"}
+        </button>
         {error && <pre className="ocr-error">{error}</pre>}
         {result && <pre className="ocr-result">{JSON.stringify(result, null, 2)}</pre>}
       </div>
