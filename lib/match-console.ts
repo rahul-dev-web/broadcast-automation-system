@@ -80,6 +80,14 @@ export async function getMatchConsoleData(tournamentId: string, matchNumber: num
 }
 
 export async function startManualMatch(matchId: string) {
+  const { data: current, error: currentError } = await supabase
+    .from("matches")
+    .select("status, tournament_id")
+    .eq("id", matchId)
+    .single();
+  if (currentError) throw currentError;
+  if (current.status !== "PENDING") throw new Error("Only a PENDING match can be started.");
+
   const { error } = await supabase.from("matches")
     .update({ status: "LIVE", input_mode: "MANUAL", started_at: new Date().toISOString() })
     .eq("id", matchId);
@@ -178,5 +186,8 @@ export async function finishManualMatch(matchId: string) {
     .eq("id", matchId);
   if (error) throw error;
   const { data: match } = await supabase.from("matches").select("tournament_id, match_number").eq("id", matchId).single();
-  if (match) await openMatchReviewStage(match.tournament_id, match.match_number);
+  if (match) {
+    await supabase.from("tournaments").update({ status: "LIVE" }).eq("id", match.tournament_id);
+    await openMatchReviewStage(match.tournament_id, match.match_number);
+  }
 }
