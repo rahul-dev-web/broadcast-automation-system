@@ -119,6 +119,11 @@ export async function verifyMatchResult(review: MatchReviewData) {
     throw new Error("Duplicate placements detected. Review the match before verifying.");
   }
 
+  const expectedPlacements = new Set(Array.from({ length: review.teams.length }, (_, index) => index + 1));
+  if (placements.some((placement) => !expectedPlacements.has(placement)) || placements.length !== expectedPlacements.size) {
+    throw new Error("Placements must be a complete 1..N sequence for the teams participating in this match.");
+  }
+
   const { data: states, error: stateError } = await supabase
     .from("match_team_state")
     .select("team_id, kills, placement, kill_points, position_points, total_points, elimination_status")
