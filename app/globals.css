@@ -1151,3 +1151,195 @@ kbd {
   .broadcast-stage-copy h1 { font-size: clamp(46px, 16vw, 88px); }
   .broadcast-overlay-footer { flex-wrap: wrap; gap: 8px; }
 }
+
+
+/* Dynamic broadcast state renderer */
+.broadcast-overlay {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  display: block;
+  padding: 0;
+  background: #05070b;
+  color: #f5f7fb;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.overlay-background-grid {
+  position: absolute; inset: 0; z-index: -2; opacity: .16; pointer-events: none;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 90%);
+}
+.overlay-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .13; pointer-events: none; z-index: -1; }
+.overlay-glow-a { width: 34vw; height: 34vw; top: -20vw; left: -12vw; background: #6d5cff; }
+.overlay-glow-b { width: 30vw; height: 30vw; right: -14vw; bottom: -18vw; background: #18d3a0; }
+
+.overlay-global-header {
+  position: absolute; top: 28px; left: 42px; right: 42px; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  pointer-events: none;
+}
+.overlay-brand { display: flex; align-items: center; gap: 11px; }
+.overlay-brand-mark {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: 1px solid rgba(151,132,255,.55); border-radius: 9px;
+  background: rgba(105,82,255,.12); color: #b9adff; font-size: 10px; font-weight: 950;
+}
+.overlay-brand strong, .overlay-brand small { display: block; }
+.overlay-brand strong { font-size: 10px; letter-spacing: .16em; }
+.overlay-brand small { margin-top: 3px; color: #667287; font-size: 7px; font-weight: 800; letter-spacing: .14em; }
+.overlay-live-badge {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px;
+  border: 1px solid rgba(30,211,160,.30); border-radius: 999px;
+  background: rgba(8,25,24,.74); color: #b8f5e7; font-size: 8px; font-weight: 950; letter-spacing: .14em;
+}
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #25d0a5; box-shadow: 0 0 14px rgba(37,208,165,.8); }
+.live-dot.offline { background: #ffae5e; box-shadow: 0 0 12px rgba(255,174,94,.5); }
+
+.overlay-transition-key { position: relative; width: 100%; min-height: 100vh; animation: overlayStageIn .48s cubic-bezier(.2,.75,.2,1) both; }
+@keyframes overlayStageIn {
+  from { opacity: 0; transform: translateY(10px) scale(.995); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.overlay-stage { width: 100%; min-height: 100vh; box-sizing: border-box; padding: 110px 56px 78px; }
+
+.overlay-kicker { color: #a99cff; font-size: 9px; font-weight: 950; letter-spacing: .20em; }
+.overlay-stage h1 { margin: 8px 0 0; font-size: clamp(50px, 7vw, 104px); line-height: .9; letter-spacing: -.055em; }
+.overlay-stage h1 em { color: #a99cff; font-style: normal; }
+.overlay-page-count { color: #778398; font-size: 9px; font-weight: 900; letter-spacing: .16em; }
+
+/* Roster: six teams per page, deliberately allowed to use most of the canvas. */
+.overlay-roster-stage { padding-top: 105px; }
+.overlay-stage-header { display: flex; justify-content: space-between; align-items: end; margin: 0 auto 28px; width: min(1380px, 100%); }
+.overlay-stage-header h1 { font-size: clamp(48px, 6vw, 82px); }
+.overlay-roster-grid { width: min(1380px, 100%); margin: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.overlay-roster-card {
+  min-height: 180px; padding: 17px; border: 1px solid rgba(140,154,180,.20); border-radius: 14px;
+  background: linear-gradient(135deg, rgba(18,24,35,.96), rgba(8,12,18,.88));
+  box-shadow: 0 20px 55px rgba(0,0,0,.18);
+  animation: overlayCardIn .55s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--delay);
+}
+@keyframes overlayCardIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.overlay-roster-team { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.overlay-roster-team b, .overlay-roster-team span { display: block; }
+.overlay-roster-team b { font-size: 13px; letter-spacing: .04em; }
+.overlay-roster-team div span { margin-top: 3px; color: #78859a; font-size: 9px; }
+.overlay-roster-team small { color: #5f6c7e; font-size: 8px; }
+.overlay-team-logo { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; }
+.overlay-team-logo.fallback { display: grid; place-items: center; border: 1px solid rgba(140,124,255,.35); color: #afa4ff; background: rgba(110,88,255,.12); font-size: 9px; font-weight: 950; }
+.overlay-player-list { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.overlay-player-list div { display: flex; align-items: center; gap: 7px; min-width: 0; color: #dbe0e8; font-size: 9px; }
+.overlay-player-list div > span { width: 16px; color: #59667a; font-size: 7px; }
+.overlay-player-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overlay-player-list i { color: #a99cff; font-size: 6px; font-style: normal; font-weight: 900; }
+
+/* Room: full presentation because this is a pre-match scene, not a gameplay HUD. */
+.overlay-room-stage { padding: 125px 7vw 80px; }
+.overlay-room-heading { width: min(1400px, 100%); margin: auto; display: flex; justify-content: space-between; align-items: end; gap: 30px; }
+.overlay-room-heading h1 { font-size: clamp(64px, 9vw, 132px); }
+.overlay-room-heading p { margin: 14px 0 0; color: #738095; font-size: 10px; font-weight: 800; letter-spacing: .13em; }
+.overlay-room-status { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid rgba(37,208,165,.24); border-radius: 999px; color: #9debd9; font-size: 8px; font-weight: 950; letter-spacing: .15em; }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #25d0a5; box-shadow: 0 0 0 0 rgba(37,208,165,.55); animation: pulse 1.7s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(37,208,165,0); } 100% { box-shadow: 0 0 0 0 rgba(37,208,165,0); } }
+.overlay-room-grid { width: min(1400px, 100%); margin: 42px auto 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.overlay-room-team {
+  display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto auto;
+  padding: 14px 15px; border-left: 2px solid #6756e9; border-radius: 10px;
+  background: rgba(13,18,27,.82); animation: overlayCardIn .5s both; animation-delay: var(--delay);
+}
+.overlay-room-team > span { grid-row: 1 / span 3; align-self: center; color: #58657a; font-size: 9px; font-weight: 900; }
+.overlay-room-team strong { font-size: 12px; }
+.overlay-room-team small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #718096; font-size: 8px; margin-top: 3px; }
+.overlay-room-team i { color: #a39bff; font-size: 7px; font-style: normal; font-weight: 900; margin-top: 6px; }
+.overlay-room-footer { width: min(1400px,100%); margin: 34px auto 0; display: flex; justify-content: space-between; color: #5f6b7c; font-size: 8px; font-weight: 900; letter-spacing: .16em; }
+.overlay-room-footer b { color: #7f72ee; }
+
+/* MATCH LIVE: compact gameplay HUD. The center remains transparent so the game stays visible. */
+.stage-match_live { background: transparent; }
+.stage-match_live .overlay-background-grid, .stage-match_live .overlay-glow { display: none; }
+.stage-match_live .overlay-global-header { top: 12px; left: 18px; right: 18px; }
+.stage-match_live .overlay-global-header .overlay-brand { opacity: .68; }
+.overlay-live-stage { min-height: 100vh; padding: 0; pointer-events: none; }
+.overlay-live-topbar {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 18px; min-height: 32px; padding: 0 15px;
+  border: 1px solid rgba(255,255,255,.11); border-radius: 7px; background: rgba(4,7,12,.76); backdrop-filter: blur(12px);
+  color: #7e8ba0; font-size: 7px; font-weight: 950; letter-spacing: .15em;
+}
+.overlay-live-topbar strong { color: #f3f5fa; font-size: 9px; }
+.overlay-live-brand { display: flex; align-items: center; gap: 6px; color: #a8f1e1; }
+.overlay-live-side {
+  position: absolute; left: 18px; top: 58px; width: 210px; padding: 12px;
+  border: 1px solid rgba(255,255,255,.09); border-radius: 10px; background: rgba(4,7,12,.72); backdrop-filter: blur(10px);
+}
+.overlay-live-row { display: grid; grid-template-columns: 20px 1fr 28px 34px; align-items: center; gap: 5px; height: 25px; border-top: 1px solid rgba(255,255,255,.045); color: #b6bfcd; font-size: 8px; }
+.overlay-live-row b { color: #606d7f; }
+.overlay-live-row strong { color: #e9edf4; overflow: hidden; text-overflow: ellipsis; }
+.overlay-live-row span { color: #7c8798; }
+.overlay-live-row em { color: #b1a7ff; font-style: normal; font-weight: 900; text-align: right; }
+.overlay-live-bottom {
+  position: absolute; left: 18px; right: 18px; bottom: 16px; display: grid; grid-template-columns: repeat(12, 1fr);
+  gap: 5px;
+}
+.overlay-live-chip {
+  min-width: 0; height: 34px; display: grid; grid-template-columns: 15px 1fr; grid-template-rows: 1fr 1fr;
+  column-gap: 5px; padding: 5px 7px; border: 1px solid rgba(255,255,255,.08); border-radius: 6px;
+  background: rgba(4,7,12,.76); backdrop-filter: blur(8px); color: #9ba7b8; font-size: 6px;
+}
+.overlay-live-chip b { grid-row: 1 / span 2; align-self: center; color: #5d6979; font-size: 7px; }
+.overlay-live-chip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #dce1e8; }
+.overlay-live-chip em { color: #a99cff; font-style: normal; }
+.overlay-live-chip span { color: #718096; }
+.overlay-live-chip.eliminated { opacity: .42; }
+
+/* Result / PT / Overall scenes use the canvas intentionally. */
+.overlay-result-stage, .overlay-pt-stage, .overlay-overall-stage { padding: 112px 7vw 76px; }
+.overlay-result-heading, .overlay-pt-heading, .overlay-overall-heading { width: min(1320px,100%); margin: auto; display: flex; justify-content: space-between; align-items: end; }
+.result-stamp { padding: 8px 12px; border: 1px solid rgba(37,208,165,.3); border-radius: 999px; color: #8ce2d0; font-size: 7px; font-weight: 950; letter-spacing: .15em; }
+.overlay-scoreboard { width: min(1320px,100%); margin: 28px auto 0; border: 1px solid rgba(139,153,180,.17); border-radius: 13px; overflow: hidden; background: rgba(8,12,18,.88); }
+.overlay-scoreboard-head { display: grid; grid-template-columns: 1fr 70px; padding: 12px 16px; color: #727f91; font-size: 8px; font-weight: 950; letter-spacing: .14em; border-bottom: 1px solid rgba(255,255,255,.07); }
+.overlay-scoreboard-head span:last-child { text-align: right; }
+.overlay-score-row { display: grid; grid-template-columns: 42px 80px 1fr 70px 70px; align-items: center; min-height: 42px; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,.045); font-size: 10px; }
+.overlay-rank { color: #5f6c7e; font-weight: 900; }
+.overlay-team-prefix { color: #a99cff; font-weight: 950; }
+.overlay-team-name { color: #c9d0da; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overlay-kills { color: #7d899b; text-align: right; }
+.overlay-total { color: #f4f6fa; text-align: right; font-weight: 950; }
+.overlay-pt-table { width: min(1320px,100%); margin: 28px auto 0; border: 1px solid rgba(139,153,180,.17); border-radius: 13px; overflow: hidden; background: rgba(8,12,18,.9); }
+.overlay-pt-table-head, .overlay-pt-table-row { display: grid; grid-template-columns: 50px 1.4fr repeat(5, 100px); align-items: center; gap: 10px; padding: 0 18px; }
+.overlay-pt-table-head { min-height: 38px; color: #687589; font-size: 7px; font-weight: 950; letter-spacing: .12em; border-bottom: 1px solid rgba(255,255,255,.07); }
+.overlay-pt-table-row { min-height: 47px; border-bottom: 1px solid rgba(255,255,255,.045); color: #9da8b8; font-size: 9px; }
+.overlay-pt-table-row strong { color: #e4e8ee; }
+.overlay-pt-table-row b { color: #b0a5ff; font-size: 12px; }
+.overlay-overall-heading h1 { font-size: clamp(52px, 7vw, 96px); }
+.overlay-simple-stage { display: grid; place-content: center; text-align: center; }
+.overlay-simple-stage p { color: #718096; }
+.overlay-global-footer { position: absolute; left: 42px; right: 42px; bottom: 20px; z-index: 20; display: flex; gap: 9px; color: #505d70; font-size: 7px; font-weight: 900; letter-spacing: .13em; pointer-events: none; }
+.broadcast-overlay-loading, .broadcast-overlay-error { display: grid; place-content: center; text-align: center; gap: 12px; }
+.overlay-loading-mark { margin: auto; width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid rgba(157,140,255,.5); border-radius: 12px; color: #b1a6ff; }
+.broadcast-overlay-loading > span { color: #7d899a; font-size: 8px; font-weight: 950; letter-spacing: .18em; }
+.broadcast-overlay-loading > i { width: 120px; height: 2px; margin: auto; overflow: hidden; background: rgba(255,255,255,.08); }
+.broadcast-overlay-loading > i::after { content: ""; display: block; width: 40%; height: 100%; background: #8d7cff; animation: loadingBar 1s infinite ease-in-out; }
+@keyframes loadingBar { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+.broadcast-overlay-error h1 { font-size: clamp(38px, 6vw, 80px); margin: 0; }
+.broadcast-overlay-error p { max-width: 600px; color: #7c899c; }
+
+@media (max-width: 900px) {
+  .overlay-global-header { left: 18px; right: 18px; top: 18px; }
+  .overlay-global-footer { left: 18px; right: 18px; }
+  .overlay-stage { padding-left: 22px; padding-right: 22px; }
+  .overlay-roster-grid { grid-template-columns: repeat(2, 1fr); }
+  .overlay-room-grid { grid-template-columns: repeat(3, 1fr); }
+  .overlay-live-side { width: 180px; }
+  .overlay-live-bottom { grid-template-columns: repeat(6, 1fr); }
+  .overlay-pt-table-head, .overlay-pt-table-row { grid-template-columns: 32px 1fr repeat(5, 62px); padding: 0 10px; }
+}
+@media (max-width: 620px) {
+  .overlay-roster-grid { grid-template-columns: 1fr; }
+  .overlay-room-grid { grid-template-columns: repeat(2, 1fr); }
+  .overlay-live-side { left: 10px; width: 160px; }
+  .overlay-live-bottom { left: 10px; right: 10px; grid-template-columns: repeat(4, 1fr); }
+  .overlay-brand strong { font-size: 8px; }
+}
