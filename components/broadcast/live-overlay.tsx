@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 import { supabase } from "@/lib/supabase/client";
 import type { BroadcastStage } from "@/lib/types/tournament";
@@ -149,7 +149,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
   const [data, setData] = useState<OverlayData>({ tournamentName: "Broadcast", totalMatches: 1, teams: [], scores: [], overall: [], loading: true, error: "" });
 
   const loadOverlayData = useCallback(async (matchNumber: number) => {
-    setData(current => ({ ...current, loading: true, error: "" }));
+    setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
     try {
       const [tournamentResult, teamsResult, matchResult] = await Promise.all([
         supabase.from("tournaments").select("name, total_matches").eq("id", tournamentId).single(),
@@ -244,6 +244,14 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
   const currentScores = useMemo(() => rankScores(data.scores), [data.scores]);
   const overallScores = useMemo(() => rankScores(data.overall), [data.overall]);
   const isLive = connection === "SUBSCRIBED";
+
+  useEffect(() => {
+    if (stage !== "MATCH_LIVE" || !hydrated) return;
+    const timer = window.setInterval(() => {
+      void loadOverlayData(state.matchNumber ?? 1);
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [stage, hydrated, state.matchNumber, loadOverlayData]);
 
   if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="overlay-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span className="overlay-kicker">BROADCAST FEED ERROR</span><h1>DATA SYNC FAILED</h1><p>{data.error}</p></main>;
