@@ -64,7 +64,7 @@ function RosterStage({ teams, page }: { teams: OverlayTeam[]; page: 1 | 2 }) {
       <span className="overlay-page-count">{visible.length} TEAMS</span>
     </div>
     <div className="overlay-roster-grid">
-      {visible.map((team, index) => <article className="overlay-roster-card" key={team.id} style={{ "--delay": `${index * 55}ms` } as React.CSSProperties}>
+      {visible.map((team, index) => <article className="overlay-roster-card" key={team.id} style={{ "--delay": `${index * 55}ms` } as CSSProperties}>
         <div className="overlay-roster-team">
           {team.logoUrl ? <img src={team.logoUrl} alt="" className="overlay-team-logo" /> : <span className="overlay-team-logo fallback">{team.prefix.slice(0, 2) || `T${team.number}`}</span>}
           <div><b>{team.prefix || `TEAM ${team.number}`}</b><span>{team.name || "Unnamed Team"}</span></div>
@@ -87,7 +87,7 @@ function RoomStage({ teams, matchNumber, tournamentName }: { teams: OverlayTeam[
       <div className="overlay-room-status"><span className="pulse-dot" />ROOM READY</div>
     </div>
     <div className="overlay-room-grid">
-      {teams.map((team, index) => <div className="overlay-room-team" key={team.id} style={{ "--delay": `${index * 35}ms` } as React.CSSProperties}>
+      {teams.map((team, index) => <div className="overlay-room-team" key={team.id} style={{ "--delay": `${index * 35}ms` } as CSSProperties}>
         <span>{String(team.number).padStart(2, "0")}</span><strong>{team.prefix || `TEAM ${team.number}`}</strong><small>{team.name}</small><i>{team.players.filter(p => !p.substitute).length} PLAYERS</i>
       </div>)}
     </div>
