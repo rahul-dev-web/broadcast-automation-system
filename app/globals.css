@@ -1343,3 +1343,28 @@ kbd {
   .overlay-live-bottom { left: 10px; right: 10px; grid-template-columns: repeat(4, 1fr); }
   .overlay-brand strong { font-size: 8px; }
 }
+
+
+/* OBS TRANSPARENT CANVAS: the live browser-source overlay must never paint a full-frame background. */
+body:has(.broadcast-overlay) {
+  background: transparent !important;
+}
+
+.broadcast-overlay,
+.broadcast-overlay-loading,
+.broadcast-overlay-error {
+  background: transparent !important;
+}
+
+/* Decorative full-canvas layers are disabled for the OBS overlay. Individual cards/HUDs
+   keep their own semi-opaque surfaces so gameplay remains visible everywhere else. */
+.broadcast-overlay > .overlay-background-grid,
+.broadcast-overlay > .overlay-glow {
+  display: none !important;
+}
+
+/* The live gameplay HUD was already intended to be transparent; enforce it at the root. */
+.stage-match_live,
+.stage-match_live .overlay-live-stage {
+  background: transparent !important;
+}
