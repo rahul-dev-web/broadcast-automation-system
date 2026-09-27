@@ -168,7 +168,6 @@ function LiveHud({
 function BooyahStage({ rows, matchNumber }: { rows: OverlayScore[]; matchNumber: number }) {
   const ranked = rankScores(rows);
   const winner = ranked.find(row => row.placement === 1) ?? ranked[0];
-  const winnerTeam: OverlayTeam | undefined = undefined;
   return (
     <section className="ff-stage ff-booyah-stage">
       <div className="ff-booyah-flare" />
@@ -179,7 +178,7 @@ function BooyahStage({ rows, matchNumber }: { rows: OverlayScore[]; matchNumber:
         <div><span>WINNER</span><strong>{winner?.prefix || "TBD"}</strong><small>{winner?.teamName || "MATCH WINNER"}</small></div>
         <div className="ff-winner-stats"><b>{winner?.totalPoints ?? 0}<small>PTS</small></b><b>{winner?.kills ?? 0}<small>ELIMS</small></b></div>
       </div>
-      <div className="ff-result-note">{winnerTeam ? winnerTeam.name : "POINT RUSH · GRAND FINALS"}</div>
+      <div className="ff-result-note">{winner?.teamName || "POINT RUSH · GRAND FINALS"}</div>
     </section>
   );
 }
