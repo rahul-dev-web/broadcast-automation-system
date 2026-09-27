@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 import { supabase } from "@/lib/supabase/client";
 import type { BroadcastStage } from "@/lib/types/tournament";
@@ -232,6 +232,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
   const [connection, setConnection] = useState("CONNECTING");
   const [hydrated, setHydrated] = useState(false);
   const [data, setData] = useState<OverlayData>({ tournamentName: "Broadcast", totalMatches: 1, teams: [], scores: [], overall: [], loading: true, error: "" });
+  const lastSessionUpdateRef = useRef("");
 
   const loadOverlayData = useCallback(async (matchNumber: number) => {
     setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
@@ -297,6 +298,8 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
 
   const applyRealtime = useCallback((payload: BroadcastStatePayload) => {
     if (payload.tournamentId !== tournamentId) return;
+    if (new Date(payload.updatedAt).getTime() <= new Date(lastSessionUpdateRef.current || "1970-01-01").getTime()) return;
+    lastSessionUpdateRef.current = payload.updatedAt;
     setState(current => new Date(payload.updatedAt).getTime() >= new Date(current.updatedAt).getTime() ? payload : current);
     void loadOverlayData(payload.matchNumber ?? 1);
   }, [loadOverlayData, tournamentId]);
@@ -313,6 +316,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
       if (!error && session) {
         const payload = { ...((session.state_payload ?? {}) as Record<string, unknown>), stage: session.state, updatedAt: session.updated_at };
         const next = normalizePayload(tournamentId, payload);
+        lastSessionUpdateRef.current = next.updatedAt;
         setState(next);
         await loadOverlayData(next.matchNumber ?? 1);
       } else {
@@ -331,10 +335,34 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
   const isLive = connection === "SUBSCRIBED";
 
   useEffect(() => {
-    if (stage !== "MATCH_LIVE" || !hydrated) return;
-    const timer = window.setInterval(() => { void loadOverlayData(state.matchNumber ?? 1); }, 1500);
+    if (!hydrated) return;
+
+    // Realtime is the fast path. This lightweight session poll is the fallback
+    // that keeps the browser source moving even if one broadcast event is missed.
+    const timer = window.setInterval(async () => {
+      try {
+        const { data: session } = await supabase
+          .from("broadcast_sessions")
+          .select("state, state_payload, updated_at")
+          .eq("tournament_id", tournamentId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!session || session.updated_at === lastSessionUpdateRef.current) return;
+
+        const payload = { ...((session.state_payload ?? {}) as Record<string, unknown>), stage: session.state, updatedAt: session.updated_at };
+        const next = normalizePayload(tournamentId, payload);
+        lastSessionUpdateRef.current = next.updatedAt;
+        setState(next);
+        void loadOverlayData(next.matchNumber ?? 1);
+      } catch {
+        // Realtime remains active; a temporary polling failure should not blank the overlay.
+      }
+    }, 1200);
+
     return () => window.clearInterval(timer);
-  }, [stage, hydrated, state.matchNumber, loadOverlayData]);
+  }, [hydrated, loadOverlayData, tournamentId]);
 
   if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="ff-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
