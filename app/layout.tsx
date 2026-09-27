@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./broadcast-visuals.css";
+import "./broadcast-motion.css";
 
 export const metadata: Metadata = {
   title: "Broadcast Automation System",
