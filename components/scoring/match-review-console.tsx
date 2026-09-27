@@ -93,6 +93,9 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
           {data.matchStatus === "REVIEW" && !data.officialResultExists && !placementsReady && (
             <span className="muted">Waiting for final placements to sync…</span>
           )}
+          {data.matchStatus === "REVIEW" && !data.officialResultExists && placementsReady && aliveTeams.length !== 1 && (
+            <span className="muted">Waiting for the final surviving team…</span>
+          )}
           <a
             className="primary-button"
             href={`/broadcast/control?tournament=${encodeURIComponent(tournamentId)}`}
