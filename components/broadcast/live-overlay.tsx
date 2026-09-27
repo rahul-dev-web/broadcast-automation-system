@@ -121,7 +121,7 @@ function LiveHud({
   currentPlayer: BroadcastStatePayload["currentPlayer"]; teams: OverlayTeam[];
   statusLabel?: string;
 }) {
-  const ranked = rankScores(rows);
+  const ranked = [...rows].sort((a, b) => (b.kills - a.kills) || (a.teamNumber - b.teamNumber));
   const focusedTeam = currentPlayer ? teams.find(team => team.id === currentPlayer.teamId) : null;
   return (
     <section className="ff-stage ff-live-stage">
