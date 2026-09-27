@@ -379,7 +379,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
           : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} />
           : stage === "MATCH_VERIFIED" ? <BooyahStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
           : stage === "MATCH_PT" ? <MatchResultStage rows={currentScores} title="GAME STANDINGS" subtitle="OFFICIAL MATCH RESULT" matchNumber={state.matchNumber ?? 1} />
-          : stage === "MATCH_REVIEW" ? <MatchResultStage rows={currentScores} title="RESULT REVIEW" subtitle="RESULT VERIFICATION" matchNumber={state.matchNumber ?? 1} />
+          : stage === "MATCH_REVIEW" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={null} teams={data.teams} statusLabel="MATCH COMPLETE" />
           : stage === "OVERALL" ? <OverallStage rows={overallScores} />
           : <SimpleStage stage={stage} />}
       </div>
