@@ -29,6 +29,14 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
 
   useEffect(() => { void load(); }, [load]);
 
+  // Keep the review screen synchronized while the match transitions from LIVE
+  // to REVIEW, so a transient database/realtime race cannot hide verification.
+  useEffect(() => {
+    if (!data || data.matchStatus !== "REVIEW" || data.officialResultExists) return;
+    const timer = window.setInterval(() => { void load(); }, 1000);
+    return () => window.clearInterval(timer);
+  }, [data?.matchStatus, data?.officialResultExists, load]);
+
   async function changeKills(team: MatchReviewTeam, delta: number) {
     if (!data || data.matchStatus !== "REVIEW") return;
     setBusy(team.id);
@@ -61,7 +69,8 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
   if (!data) return <section className="panel"><p className="error-banner">{error || "Match unavailable."}</p></section>;
 
   const sortedTeams = [...data.teams].sort((a, b) => (a.placement ?? 99) - (b.placement ?? 99));
-  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists && data.teams.every((team) => team.placement !== null);
+  const placementsReady = data.teams.length > 0 && data.teams.every((team) => team.placement !== null);
+  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists;
 
   return (
     <main className="match-review">
@@ -76,9 +85,12 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
         <div className="console-actions">
           <span className="status-pill">{data.matchStatus}</span>
           {canVerify && (
-            <button className="primary-button" disabled={busy !== null} onClick={() => void verify()}>
+            <button className="primary-button" disabled={busy !== null || !placementsReady} onClick={() => void verify()}>
               {busy === "verify" ? "VERIFYING…" : "VERIFY & PUBLISH"}
             </button>
+          )}
+          {canVerify && !placementsReady && (
+            <span className="muted">Waiting for final placements to sync…</span>
           )}
           <a
             className="primary-button"
