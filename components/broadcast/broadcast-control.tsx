@@ -80,6 +80,28 @@ export function BroadcastControl({ tournamentId }: { tournamentId: string }) {
     return () => { void channel.unsubscribe(); };
   }, [channel, tournamentId]);
 
+  // Realtime is the fast path; poll the persisted session as a fallback so the
+  // operator never has to refresh this controller when a realtime event is missed.
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        const session = await getBroadcastSession(tournamentId);
+        if (!session) return;
+        const stage = (session.state as BroadcastStage | undefined) ?? "SETUP";
+        const payload = (session.state_payload ?? {}) as Record<string, unknown>;
+        const matchNumber = typeof payload.matchNumber === "number" ? payload.matchNumber : 1;
+        setData((current) => current ? (
+          current.currentStage === stage && current.matchNumber === matchNumber
+            ? current
+            : { ...current, currentStage: stage, matchNumber }
+        ) : current);
+      } catch {
+        // Realtime remains active; a temporary polling failure should not disturb the UI.
+      }
+    }, 1200);
+    return () => window.clearInterval(timer);
+  }, [tournamentId]);
+
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
