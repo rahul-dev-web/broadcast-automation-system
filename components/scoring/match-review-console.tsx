@@ -15,15 +15,15 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError("");
     try {
       setData(await getMatchReviewData(tournamentId, matchNumber));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load review.");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [tournamentId, matchNumber]);
 
@@ -33,7 +33,7 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
   // to REVIEW, so a transient database/realtime race cannot hide verification.
   useEffect(() => {
     if (!data || data.matchStatus !== "REVIEW" || data.officialResultExists) return;
-    const timer = window.setInterval(() => { void load(); }, 1000);
+    const timer = window.setInterval(() => { void load(false); }, 1000);
     return () => window.clearInterval(timer);
   }, [data?.matchStatus, data?.officialResultExists, load]);
 
@@ -43,7 +43,7 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
     setError("");
     try {
       await updateReviewKills(data.matchId, team, team.kills + delta);
-      await load();
+      await load(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not update result.");
     } finally {
@@ -70,7 +70,8 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
 
   const sortedTeams = [...data.teams].sort((a, b) => (a.placement ?? 99) - (b.placement ?? 99));
   const placementsReady = data.teams.length > 0 && data.teams.every((team) => team.placement !== null);
-  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists;
+  const aliveTeams = data.teams.filter((team) => team.eliminationStatus === "ALIVE");
+  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists && placementsReady && aliveTeams.length === 1;
 
   return (
     <main className="match-review">
@@ -85,11 +86,11 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
         <div className="console-actions">
           <span className="status-pill">{data.matchStatus}</span>
           {canVerify && (
-            <button className="primary-button" disabled={busy !== null || !placementsReady} onClick={() => void verify()}>
+            <button className="primary-button" disabled={busy !== null || !placementsReady || aliveTeams.length !== 1} onClick={() => void verify()}>
               {busy === "verify" ? "VERIFYING…" : "VERIFY & PUBLISH"}
             </button>
           )}
-          {canVerify && !placementsReady && (
+          {data.matchStatus === "REVIEW" && !data.officialResultExists && !placementsReady && (
             <span className="muted">Waiting for final placements to sync…</span>
           )}
           <a
