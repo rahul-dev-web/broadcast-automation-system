@@ -41,105 +41,190 @@ function rankScores(rows: OverlayScore[]) {
   return [...rows].sort((a, b) => (b.totalPoints - a.totalPoints) || (b.kills - a.kills) || ((a.placement ?? 99) - (b.placement ?? 99)));
 }
 
-function ScoreTable({ rows, title }: { rows: OverlayScore[]; title: string }) {
-  return <div className="overlay-scoreboard">
-    <div className="overlay-scoreboard-head"><span>{title}</span><span>PTS</span></div>
-    <div className="overlay-scoreboard-rows">
-      {rows.map((row, index) => <div className="overlay-score-row" key={row.teamId}>
-        <span className="overlay-rank">{String(index + 1).padStart(2, "0")}</span>
-        <span className="overlay-team-prefix">{row.prefix || `T${row.teamNumber}`}</span>
-        <span className="overlay-team-name">{row.teamName || "Unnamed Team"}</span>
-        <span className="overlay-kills">{row.kills}K</span>
-        <span className="overlay-total">{row.totalPoints}</span>
-      </div>)}
-    </div>
-  </div>;
+function TeamLogo({ team }: { team: OverlayTeam }) {
+  return team.logoUrl
+    ? <img src={team.logoUrl} alt="" className="ff-team-logo" />
+    : <span className="ff-team-logo ff-team-logo-fallback">{(team.prefix || `T${team.number}`).slice(0, 3)}</span>;
 }
 
-function RosterStage({ teams, page }: { teams: OverlayTeam[]; page: 1 | 2 }) {
+function BroadcastBrand({ tournamentName }: { tournamentName: string }) {
+  return (
+    <div className="ff-brand">
+      <span className="ff-brand-mark">BA</span>
+      <div><strong>BROADCAST AUTOMATION</strong><small>{tournamentName}</small></div>
+    </div>
+  );
+}
+
+function LineupStage({ teams, page }: { teams: OverlayTeam[]; page: 1 | 2 }) {
   const visible = teams.slice((page - 1) * 6, page * 6);
-  return <section className="overlay-stage overlay-roster-stage">
-    <div className="overlay-stage-header">
-      <div><span className="overlay-kicker">TEAM ROSTER</span><h1>ROSTER <em>/{page}</em></h1></div>
-      <span className="overlay-page-count">{visible.length} TEAMS</span>
-    </div>
-    <div className="overlay-roster-grid">
-      {visible.map((team, index) => <article className="overlay-roster-card" key={team.id} style={{ "--delay": `${index * 55}ms` } as CSSProperties}>
-        <div className="overlay-roster-team">
-          {team.logoUrl ? <img src={team.logoUrl} alt="" className="overlay-team-logo" /> : <span className="overlay-team-logo fallback">{team.prefix.slice(0, 2) || `T${team.number}`}</span>}
-          <div><b>{team.prefix || `TEAM ${team.number}`}</b><span>{team.name || "Unnamed Team"}</span></div>
-          <small>#{String(team.number).padStart(2, "0")}</small>
-        </div>
-        <div className="overlay-player-list">
-          {team.players.slice(0, 5).map(player => <div key={player.id} className={player.substitute ? "substitute" : ""}>
-            <span>{String(player.slot).padStart(2, "0")}</span><strong>{player.inGameName || player.displayName || "Player"}</strong>{player.substitute && <i>SUB</i>}
-          </div>)}
-        </div>
-      </article>)}
-    </div>
-  </section>;
+  return (
+    <section className="ff-stage ff-lineup-stage">
+      <div className="ff-corner ff-corner-tl" /><div className="ff-corner ff-corner-tr" />
+      <div className="ff-corner ff-corner-bl" /><div className="ff-corner ff-corner-br" />
+      <div className="ff-title-block">
+        <span>GRAND FINALS · POINT RUSH</span>
+        <h1>TEAM <em>LINEUP</em></h1>
+        <i>{String(page).padStart(2, "0")} / 02</i>
+      </div>
+      <div className="ff-lineup-grid">
+        {visible.map((team, index) => (
+          <article className="ff-lineup-card" key={team.id} style={{ "--delay": `${index * 70}ms` } as CSSProperties}>
+            <div className="ff-lineup-card-head">
+              <TeamLogo team={team} />
+              <div><strong>{team.name || `TEAM ${team.number}`}</strong><span>{team.prefix || `T${team.number}`}</span></div>
+              <b>#{String(team.number).padStart(2, "0")}</b>
+            </div>
+            <div className="ff-player-strip">
+              {team.players.slice(0, 5).map(player => (
+                <div className="ff-player-chip" key={player.id}>
+                  <span>{String(player.slot).padStart(2, "0")}</span>
+                  <strong>{player.inGameName || player.displayName || "PLAYER"}</strong>
+                  {player.substitute && <i>SUB</i>}
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="ff-stage-footer"><span>OFFICIAL TOURNAMENT BROADCAST</span><b>LIVE PRODUCTION</b></div>
+    </section>
+  );
 }
 
 function RoomStage({ teams, matchNumber, tournamentName }: { teams: OverlayTeam[]; matchNumber: number; tournamentName: string }) {
-  return <section className="overlay-stage overlay-room-stage">
-    <div className="overlay-room-heading">
-      <div><span className="overlay-kicker">MATCH ROOM</span><h1>MATCH <em>{String(matchNumber).padStart(2, "0")}</em></h1><p>{tournamentName} · MANUAL FEED · {teams.length} TEAMS</p></div>
-      <div className="overlay-room-status"><span className="pulse-dot" />ROOM READY</div>
-    </div>
-    <div className="overlay-room-grid">
-      {teams.map((team, index) => <div className="overlay-room-team" key={team.id} style={{ "--delay": `${index * 35}ms` } as CSSProperties}>
-        <span>{String(team.number).padStart(2, "0")}</span><strong>{team.prefix || `TEAM ${team.number}`}</strong><small>{team.name}</small><i>{team.players.filter(p => !p.substitute).length} PLAYERS</i>
-      </div>)}
-    </div>
-    <div className="overlay-room-footer"><span>WAITING FOR MATCH START</span><b>LIVE PRODUCTION</b></div>
-  </section>;
+  return (
+    <section className="ff-stage ff-room-stage">
+      <div className="ff-room-orbit" />
+      <div className="ff-room-copy">
+        <span className="ff-overline">MATCH {String(matchNumber).padStart(2, "0")} · {tournamentName}</span>
+        <h1>GET<br /><em>READY</em></h1>
+        <p>ROOM IS OPEN · {teams.length} TEAMS REGISTERED · {String(matchNumber).padStart(2, "0")} / LIVE SERIES</p>
+        <div className="ff-ready-pill"><span /> MATCH READY</div>
+      </div>
+      <div className="ff-room-grid">
+        {teams.map((team, index) => (
+          <div className="ff-room-team" key={team.id} style={{ "--delay": `${index * 35}ms` } as CSSProperties}>
+            <b>{String(team.number).padStart(2, "0")}</b><strong>{team.prefix || `T${team.number}`}</strong><span>{team.name}</span>
+          </div>
+        ))}
+      </div>
+      <div className="ff-action-bar"><span>ACTION STARTS WHEN THE MATCH GOES LIVE</span><strong>POINT RUSH</strong></div>
+    </section>
+  );
 }
 
-function LiveHud({ rows, matchNumber }: { rows: OverlayScore[]; matchNumber: number }) {
+function LiveHud({
+  rows, matchNumber, currentPlayer, teams,
+}: {
+  rows: OverlayScore[]; matchNumber: number;
+  currentPlayer: BroadcastStatePayload["currentPlayer"]; teams: OverlayTeam[];
+}) {
   const ranked = rankScores(rows);
-  return <section className="overlay-stage overlay-live-stage">
-    <div className="overlay-live-topbar"><div className="overlay-live-brand"><span className="live-dot" /> LIVE</div><strong>MATCH {String(matchNumber).padStart(2, "0")}</strong><span>MANUAL FEED</span></div>
-    <div className="overlay-live-side">
-      <span className="overlay-kicker">LIVE STANDINGS</span>
-      {ranked.slice(0, 6).map((row, index) => <div className="overlay-live-row" key={row.teamId}><b>{index + 1}</b><strong>{row.prefix}</strong><span>{row.kills}K</span><em>{row.totalPoints}</em></div>)}
-    </div>
-    <div className="overlay-live-bottom">
-      {ranked.map((row, index) => <div className={row.eliminationStatus === "ELIMINATED" ? "overlay-live-chip eliminated" : "overlay-live-chip"} key={row.teamId}>
-        <b>{index + 1}</b><strong>{row.prefix}</strong><span>{row.kills}K</span><em>{row.totalPoints}</em>
-      </div>)}
-    </div>
-  </section>;
+  const focusedTeam = currentPlayer ? teams.find(team => team.id === currentPlayer.teamId) : null;
+  return (
+    <section className="ff-stage ff-live-stage">
+      <div className="ff-live-top">
+        <div className="ff-live-match"><span className="ff-live-dot" /> MATCH {String(matchNumber).padStart(2, "0")}</div>
+        <div className="ff-live-center">GRAND FINALS <b>·</b> POINT RUSH</div>
+        <div className="ff-live-feed">{currentPlayer ? "PLAYER FOCUS" : "LIVE"} <span /></div>
+      </div>
+
+      <aside className="ff-standings">
+        <div className="ff-standings-title"><strong>GAME STANDINGS</strong><span>ALIVE · ELIMS</span></div>
+        <div className="ff-standings-legend"><span className="alive-box" /> ALIVE <span className="elim-box" /> ELIMINATED</div>
+        {ranked.slice(0, 12).map((row, index) => (
+          <div className={`ff-standing-row ${row.eliminationStatus === "ELIMINATED" ? "is-eliminated" : ""}`} key={row.teamId}>
+            <b>{index + 1}</b>
+            <strong>{row.prefix || `T${row.teamNumber}`}</strong>
+            <span className="ff-bars">{[0,1,2,3].map(bar => <i key={bar} />)}</span>
+            <em>{row.kills}</em>
+          </div>
+        ))}
+      </aside>
+
+      {currentPlayer && (
+        <div className="ff-player-focus">
+          <div className="ff-focus-accent" />
+          <div className="ff-focus-team">{focusedTeam?.prefix || `T${currentPlayer.teamNumber}`} <span>PLAYER FOCUS</span></div>
+          <strong>{currentPlayer.inGameName || currentPlayer.registeredName}</strong>
+          <div className="ff-focus-meta"><span>TEAM {String(currentPlayer.teamNumber).padStart(2, "0")}</span><span>·</span><span>LIVE</span></div>
+        </div>
+      )}
+
+      <div className="ff-live-score-strip">
+        {ranked.map((row, index) => (
+          <div className={`ff-live-score ${row.eliminationStatus === "ELIMINATED" ? "is-eliminated" : ""}`} key={row.teamId}>
+            <b>{index + 1}</b><strong>{row.prefix || `T${row.teamNumber}`}</strong><span>{row.kills}K</span><em>{row.totalPoints}</em>
+          </div>
+        ))}
+      </div>
+      <div className="ff-live-brand-watermark">FF <small>OFFICIAL BROADCAST</small></div>
+    </section>
+  );
 }
 
-function MatchResultStage({ rows, title, subtitle }: { rows: OverlayScore[]; title: string; subtitle: string }) {
-  return <section className="overlay-stage overlay-result-stage">
-    <div className="overlay-result-heading"><div><span className="overlay-kicker">{subtitle}</span><h1>{title}</h1></div><span className="result-stamp">OFFICIAL</span></div>
-    <ScoreTable rows={rankScores(rows)} title="MATCH STANDINGS" />
-  </section>;
+function BooyahStage({ rows, matchNumber }: { rows: OverlayScore[]; matchNumber: number }) {
+  const ranked = rankScores(rows);
+  const winner = ranked.find(row => row.placement === 1) ?? ranked[0];
+  const winnerTeam: OverlayTeam | undefined = undefined;
+  return (
+    <section className="ff-stage ff-booyah-stage">
+      <div className="ff-booyah-flare" />
+      <div className="ff-booyah-word">BOOYAH!</div>
+      <div className="ff-booyah-sub">MATCH {String(matchNumber).padStart(2, "0")} · OFFICIAL RESULT</div>
+      <div className="ff-winner-card">
+        <div className="ff-winner-rank">#01</div>
+        <div><span>WINNER</span><strong>{winner?.prefix || "TBD"}</strong><small>{winner?.teamName || "MATCH WINNER"}</small></div>
+        <div className="ff-winner-stats"><b>{winner?.totalPoints ?? 0}<small>PTS</small></b><b>{winner?.kills ?? 0}<small>ELIMS</small></b></div>
+      </div>
+      <div className="ff-result-note">{winnerTeam ? winnerTeam.name : "POINT RUSH · GRAND FINALS"}</div>
+    </section>
+  );
 }
 
-function MatchPtStage({ rows, matchNumber }: { rows: OverlayScore[]; matchNumber: number }) {
-  return <section className="overlay-stage overlay-pt-stage">
-    <div className="overlay-pt-heading"><div><span className="overlay-kicker">MATCH POINT TABLE</span><h1>MATCH <em>{String(matchNumber).padStart(2, "0")}</em> PT</h1></div><span>PLACEMENT + KILL POINTS</span></div>
-    <div className="overlay-pt-table">
-      <div className="overlay-pt-table-head"><span>#</span><span>TEAM</span><span>PLACE</span><span>KILLS</span><span>POS PTS</span><span>KILL PTS</span><span>TOTAL</span></div>
-      {rankScores(rows).map((row, index) => <div className="overlay-pt-table-row" key={row.teamId}>
-        <span>{index + 1}</span><strong>{row.prefix}</strong><span>{row.placement ?? "—"}</span><span>{row.kills}</span><span>{row.positionPoints}</span><span>{row.killPoints}</span><b>{row.totalPoints}</b>
-      </div>)}
-    </div>
-  </section>;
+function MatchResultStage({ rows, title, subtitle, matchNumber }: { rows: OverlayScore[]; title: string; subtitle: string; matchNumber: number }) {
+  const ranked = rankScores(rows);
+  return (
+    <section className="ff-stage ff-results-stage">
+      <div className="ff-results-heading">
+        <div><span>{subtitle}</span><h1>{title}</h1></div>
+        <b>GAME {String(matchNumber).padStart(2, "0")}</b>
+      </div>
+      <div className="ff-results-table">
+        <div className="ff-results-head"><span>#</span><span>TEAM</span><span>PLACE</span><span>ELIMS</span><span>PTS</span></div>
+        {ranked.map((row, index) => (
+          <div className={`ff-results-row ${index === 0 ? "top-row" : ""}`} key={row.teamId}>
+            <b>{String(index + 1).padStart(2, "0")}</b><strong>{row.prefix}</strong><span>{row.placement ?? "—"}</span><span>{row.kills}</span><em>{row.totalPoints}</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function OverallStage({ rows }: { rows: OverlayScore[] }) {
-  return <section className="overlay-stage overlay-overall-stage">
-    <div className="overlay-overall-heading"><div><span className="overlay-kicker">TOURNAMENT LEADERBOARD</span><h1>OVERALL <em>STANDINGS</em></h1></div><span>ALL MATCHES</span></div>
-    <ScoreTable rows={rankScores(rows)} title="CUMULATIVE POINTS" />
-  </section>;
+  const ranked = rankScores(rows);
+  return (
+    <section className="ff-stage ff-overall-stage">
+      <div className="ff-overall-title"><span>GRAND FINALS · POINT RUSH</span><h1>GAME <em>STANDINGS</em></h1><b>OVERALL</b></div>
+      <div className="ff-overall-table">
+        {ranked.map((row, index) => (
+          <div className={`ff-overall-row ${index < 3 ? "podium-row" : ""}`} key={row.teamId}>
+            <b>{String(index + 1).padStart(2, "0")}</b><strong>{row.prefix}</strong><span>{row.teamName || "TEAM"}</span><i>{row.kills} ELIMS</i><em>{row.totalPoints}</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function SimpleStage({ stage }: { stage: BroadcastStage }) {
-  const title = stage === "THANK_YOU" ? "THANK YOU" : stage === "CLOSED" ? "BROADCAST CLOSED" : "BROADCAST READY";
-  return <section className="overlay-stage overlay-simple-stage"><span className="overlay-kicker">BROADCAST AUTOMATION</span><h1>{title}</h1><p>{stage === "THANK_YOU" ? "Tournament presentation complete." : "Waiting for the next production cue."}</p></section>;
+  const title = stage === "THANK_YOU" ? "FORGE YOUR LEGACY" : stage === "CLOSED" ? "BROADCAST CLOSED" : "BROADCAST READY";
+  const kicker = stage === "THANK_YOU" ? "THANK YOU FOR WATCHING" : "OFFICIAL TOURNAMENT BROADCAST";
+  return (
+    <section className="ff-stage ff-simple-stage"><span>{kicker}</span><h1>{title}</h1><p>{stage === "THANK_YOU" ? "Tournament presentation complete." : "Waiting for the next production cue."}</p></section>
+  );
 }
 
 export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
@@ -247,31 +332,29 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
 
   useEffect(() => {
     if (stage !== "MATCH_LIVE" || !hydrated) return;
-    const timer = window.setInterval(() => {
-      void loadOverlayData(state.matchNumber ?? 1);
-    }, 1500);
+    const timer = window.setInterval(() => { void loadOverlayData(state.matchNumber ?? 1); }, 1500);
     return () => window.clearInterval(timer);
   }, [stage, hydrated, state.matchNumber, loadOverlayData]);
 
-  if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="overlay-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
-  if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span className="overlay-kicker">BROADCAST FEED ERROR</span><h1>DATA SYNC FAILED</h1><p>{data.error}</p></main>;
+  if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="ff-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
+  if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
 
-  return <main className={`broadcast-overlay stage-${stage.toLowerCase()}`}>
-    <div className="overlay-background-grid" /><div className="overlay-glow overlay-glow-a" /><div className="overlay-glow overlay-glow-b" />
-    <header className="overlay-global-header">
-      <div className="overlay-brand"><span className="overlay-brand-mark">BA</span><div><strong>BROADCAST AUTOMATION</strong><small>{data.tournamentName}</small></div></div>
-      <div className="overlay-live-badge"><span className={isLive ? "live-dot" : "live-dot offline"} />{isLive ? "LIVE" : connection}</div>
-    </header>
-    <div className="overlay-transition-key" key={`${stage}-${state.updatedAt}`}>
-      {stage === "ROSTER_1" || stage === "ROSTER_2" ? <RosterStage teams={data.teams} page={page} />
-        : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
-        : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} />
-        : stage === "MATCH_PT" ? <MatchPtStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
-        : stage === "MATCH_REVIEW" ? <MatchResultStage rows={currentScores} title="MATCH REVIEW" subtitle="RESULT VERIFICATION" />
-        : stage === "MATCH_VERIFIED" ? <MatchResultStage rows={currentScores} title="RESULT VERIFIED" subtitle="OFFICIAL MATCH RESULT" />
-        : stage === "OVERALL" ? <OverallStage rows={overallScores} />
-        : <SimpleStage stage={stage} />}
-    </div>
-    <footer className="overlay-global-footer"><span>MATCH {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><span>•</span><span>{stage.replaceAll("_", " ")}</span><span>•</span><span>OBS BROWSER SOURCE</span></footer>
-  </main>;
+  return (
+    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()}`}>
+      <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
+      <div className="ff-bg" />
+      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
+      <div className="ff-stage-mount" key={stage}>
+        {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} />
+          : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
+          : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} />
+          : stage === "MATCH_VERIFIED" ? <BooyahStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
+          : stage === "MATCH_PT" ? <MatchResultStage rows={currentScores} title="GAME STANDINGS" subtitle="OFFICIAL MATCH RESULT" matchNumber={state.matchNumber ?? 1} />
+          : stage === "MATCH_REVIEW" ? <MatchResultStage rows={currentScores} title="RESULT REVIEW" subtitle="RESULT VERIFICATION" matchNumber={state.matchNumber ?? 1} />
+          : stage === "OVERALL" ? <OverallStage rows={overallScores} />
+          : <SimpleStage stage={stage} />}
+      </div>
+      {stage !== "MATCH_LIVE" && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
+    </main>
+  );
 }
