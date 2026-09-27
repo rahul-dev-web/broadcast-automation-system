@@ -115,10 +115,11 @@ function RoomStage({ teams, matchNumber, tournamentName }: { teams: OverlayTeam[
 }
 
 function LiveHud({
-  rows, matchNumber, currentPlayer, teams,
+  rows, matchNumber, currentPlayer, teams, statusLabel,
 }: {
   rows: OverlayScore[]; matchNumber: number;
   currentPlayer: BroadcastStatePayload["currentPlayer"]; teams: OverlayTeam[];
+  statusLabel?: string;
 }) {
   const ranked = rankScores(rows);
   const focusedTeam = currentPlayer ? teams.find(team => team.id === currentPlayer.teamId) : null;
@@ -127,7 +128,7 @@ function LiveHud({
       <div className="ff-live-top">
         <div className="ff-live-match"><span className="ff-live-dot" /> MATCH {String(matchNumber).padStart(2, "0")}</div>
         <div className="ff-live-center">GRAND FINALS <b>·</b> POINT RUSH</div>
-        <div className="ff-live-feed">{currentPlayer ? "PLAYER FOCUS" : "LIVE"} <span /></div>
+        <div className="ff-live-feed">{currentPlayer ? "PLAYER FOCUS" : (statusLabel ?? "LIVE")} <span /></div>
       </div>
 
       <aside className="ff-standings">
@@ -382,7 +383,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
           : stage === "OVERALL" ? <OverallStage rows={overallScores} />
           : <SimpleStage stage={stage} />}
       </div>
-      {stage !== "MATCH_LIVE" && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
+      {stage !== "MATCH_LIVE" && stage !== "MATCH_REVIEW" && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
     </main>
   );
 }
