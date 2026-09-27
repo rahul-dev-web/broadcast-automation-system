@@ -20,11 +20,11 @@ export function ManualMatchConsole({ tournamentId, matchNumber }: { tournamentId
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("");
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true); setError("");
     try { setData(await getMatchConsoleData(tournamentId, matchNumber)); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not load match."); }
-    finally { setLoading(false); }
+    finally { if (showLoading) setLoading(false); }
   }, [tournamentId, matchNumber]);
 
   useEffect(() => { void load(); }, [load]);
@@ -34,7 +34,7 @@ export function ManualMatchConsole({ tournamentId, matchNumber }: { tournamentId
   async function changeKills(team: MatchConsoleTeam, delta: number) {
     if (!data || team.eliminationStatus === "ELIMINATED") return;
     setBusy(team.id); setError("");
-    try { await setTeamKills(data.matchId, team, team.kills + delta); await load(); }
+    try { await setTeamKills(data.matchId, team, team.kills + delta); await load(false); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not update kills."); }
     finally { setBusy(null); }
   }
@@ -42,7 +42,7 @@ export function ManualMatchConsole({ tournamentId, matchNumber }: { tournamentId
   async function eliminate(team: MatchConsoleTeam) {
     if (!data || team.eliminationStatus === "ELIMINATED") return;
     setBusy(team.id); setError("");
-    try { await eliminateTeam(data, team.id); await load(); }
+    try { await eliminateTeam(data, team.id); await load(false); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not eliminate team."); }
     finally { setBusy(null); }
   }
