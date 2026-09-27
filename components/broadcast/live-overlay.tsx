@@ -132,14 +132,12 @@ function LiveHud({
       </div>
 
       <aside className="ff-standings">
-        <div className="ff-standings-title"><strong>GAME STANDINGS</strong><span>ALIVE · ELIMS</span></div>
-        <div className="ff-standings-legend"><span className="alive-box" /> ALIVE <span className="elim-box" /> ELIMINATED</div>
+        <div className="ff-standings-title"><strong>GAME STANDINGS</strong><span>KILLS</span></div>
         {ranked.slice(0, 12).map((row, index) => (
           <div className={`ff-standing-row ${row.eliminationStatus === "ELIMINATED" ? "is-eliminated" : ""}`} key={row.teamId}>
             <b>{index + 1}</b>
             <strong>{row.prefix || `T${row.teamNumber}`}</strong>
-            <span className="ff-bars">{[0,1,2,3].map(bar => <i key={bar} />)}</span>
-            <em>{row.kills}</em>
+            <em>{row.kills} K</em>
           </div>
         ))}
       </aside>
@@ -156,7 +154,7 @@ function LiveHud({
       <div className="ff-live-score-strip">
         {ranked.map((row, index) => (
           <div className={`ff-live-score ${row.eliminationStatus === "ELIMINATED" ? "is-eliminated" : ""}`} key={row.teamId}>
-            <b>{index + 1}</b><strong>{row.prefix || `T${row.teamNumber}`}</strong><span>{row.kills}K</span><em>{row.totalPoints}</em>
+            <b>{index + 1}</b><strong>{row.prefix || `T${row.teamNumber}`}</strong><span>{row.kills} KILLS</span>
           </div>
         ))}
       </div>
@@ -333,6 +331,18 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
   const currentScores = useMemo(() => rankScores(data.scores), [data.scores]);
   const overallScores = useMemo(() => rankScores(data.overall), [data.overall]);
   const isLive = connection === "SUBSCRIBED";
+
+  useEffect(() => {
+    if (!hydrated || stage !== "MATCH_LIVE") return;
+
+    // Match kills/eliminations are stored in match_team_state, not broadcast_sessions.
+    // Keep the browser source synced automatically even when no stage event is emitted.
+    const timer = window.setInterval(() => {
+      void loadOverlayData(state.matchNumber ?? 1);
+    }, 800);
+
+    return () => window.clearInterval(timer);
+  }, [hydrated, loadOverlayData, stage, state.matchNumber]);
 
   useEffect(() => {
     if (!hydrated) return;
