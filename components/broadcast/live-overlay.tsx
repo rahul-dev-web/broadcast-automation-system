@@ -51,19 +51,19 @@ function BroadcastBrand({ tournamentName }: { tournamentName: string }) {
   return (
     <div className="ff-brand">
       <span className="ff-brand-mark">BA</span>
-      <div><strong>BROADCAST AUTOMATION</strong><small>{tournamentName}</small></div>
+      <div><strong>{tournamentName || "TOURNAMENT"}</strong><small>OFFICIAL TOURNAMENT BROADCAST</small></div>
     </div>
   );
 }
 
-function LineupStage({ teams, page }: { teams: OverlayTeam[]; page: 1 | 2 }) {
+function LineupStage({ teams, page, tournamentName }: { teams: OverlayTeam[]; page: 1 | 2; tournamentName: string }) {
   const visible = teams.slice((page - 1) * 6, page * 6);
   return (
     <section className="ff-stage ff-lineup-stage">
       <div className="ff-corner ff-corner-tl" /><div className="ff-corner ff-corner-tr" />
       <div className="ff-corner ff-corner-bl" /><div className="ff-corner ff-corner-br" />
       <div className="ff-title-block">
-        <span>GRAND FINALS · POINT RUSH</span>
+        <span>{tournamentName}</span>
         <h1>TEAM <em>LINEUP</em></h1>
         <i>{String(page).padStart(2, "0")} / 02</i>
       </div>
@@ -115,11 +115,11 @@ function RoomStage({ teams, matchNumber, tournamentName }: { teams: OverlayTeam[
 }
 
 function LiveHud({
-  rows, matchNumber, currentPlayer, teams, statusLabel,
+  rows, matchNumber, currentPlayer, teams, tournamentName, statusLabel,
 }: {
   rows: OverlayScore[]; matchNumber: number;
   currentPlayer: BroadcastStatePayload["currentPlayer"]; teams: OverlayTeam[];
-  statusLabel?: string;
+  tournamentName: string; statusLabel?: string;
 }) {
   const ranked = [...rows].sort((a, b) => (b.kills - a.kills) || (a.teamNumber - b.teamNumber));
   const focusedTeam = currentPlayer ? teams.find(team => team.id === currentPlayer.teamId) : null;
@@ -127,7 +127,7 @@ function LiveHud({
     <section className="ff-stage ff-live-stage">
       <div className="ff-live-top">
         <div className="ff-live-match"><span className="ff-live-dot" /> MATCH {String(matchNumber).padStart(2, "0")}</div>
-        <div className="ff-live-center">GRAND FINALS <b>·</b> POINT RUSH</div>
+        <div className="ff-live-center">{tournamentName}</div>
         <div className="ff-live-feed">{currentPlayer ? "PLAYER FOCUS" : (statusLabel ?? "LIVE")} <span /></div>
       </div>
 
@@ -201,11 +201,11 @@ function MatchResultStage({ rows, title, subtitle, matchNumber }: { rows: Overla
   );
 }
 
-function OverallStage({ rows }: { rows: OverlayScore[] }) {
+function OverallStage({ rows, tournamentName }: { rows: OverlayScore[]; tournamentName: string }) {
   const ranked = rankScores(rows);
   return (
     <section className="ff-stage ff-overall-stage">
-      <div className="ff-overall-title"><span>GRAND FINALS · POINT RUSH</span><h1>GAME <em>STANDINGS</em></h1><b>OVERALL</b></div>
+      <div className="ff-overall-title"><span>{tournamentName}</span><h1>GAME <em>STANDINGS</em></h1><b>OVERALL</b></div>
       <div className="ff-overall-table">
         {ranked.map((row, index) => (
           <div className={`ff-overall-row ${index < 3 ? "podium-row" : ""}`} key={row.teamId}>
@@ -383,13 +383,13 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
       <div className="ff-bg" />
       <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
       <div className="ff-stage-mount" key={stage}>
-        {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} />
+        {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} tournamentName={data.tournamentName} />
           : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
-          : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} />
+          : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} tournamentName={data.tournamentName} />
           : stage === "MATCH_VERIFIED" ? <BooyahStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
           : stage === "MATCH_PT" ? <MatchResultStage rows={currentScores} title="GAME STANDINGS" subtitle="OFFICIAL MATCH RESULT" matchNumber={state.matchNumber ?? 1} />
-          : stage === "MATCH_REVIEW" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={null} teams={data.teams} statusLabel="MATCH COMPLETE" />
-          : stage === "OVERALL" ? <OverallStage rows={overallScores} />
+          : stage === "MATCH_REVIEW" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={null} teams={data.teams} tournamentName={data.tournamentName} statusLabel="MATCH COMPLETE" />
+          : stage === "OVERALL" ? <OverallStage rows={overallScores} tournamentName={data.tournamentName} />
           : <SimpleStage stage={stage} />}
       </div>
       {stage !== "MATCH_LIVE" && stage !== "MATCH_REVIEW" && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
