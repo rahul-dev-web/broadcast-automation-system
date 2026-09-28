@@ -28,6 +28,7 @@ export function TournamentBuilder() {
   const submitLock = useRef(false);
   const [name, setName] = useState("");
   const [totalMatches, setTotalMatches] = useState(6);
+  const [totalMatchesInput, setTotalMatchesInput] = useState("6");
   const [presentationMode, setPresentationMode] = useState<PresentationMode>("PER_MATCH");
   const [customMatches, setCustomMatches] = useState<number[]>([]);
   const [teams, setTeams] = useState<TeamDraft[]>(
@@ -161,13 +162,24 @@ export function TournamentBuilder() {
             <span>Total matches</span>
             <input
               required
-              min={1}
-              max={50}
-              type="number"
-              value={totalMatches}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              type="text"
+              value={totalMatchesInput}
+              aria-label="Total matches"
               onChange={(event) => {
-                const next = Math.max(1, Math.min(50, Number(event.target.value)));
+                const raw = event.target.value.replace(/\D/g, "").slice(0, 2);
+                setTotalMatchesInput(raw);
+                if (raw !== "") {
+                  const next = Math.max(1, Math.min(50, Number(raw)));
+                  setTotalMatches(next);
+                  setCustomMatches((current) => current.filter((match) => match <= next));
+                }
+              }}
+              onBlur={() => {
+                const next = Math.max(1, Math.min(50, Number(totalMatchesInput) || 1));
                 setTotalMatches(next);
+                setTotalMatchesInput(String(next));
                 setCustomMatches((current) => current.filter((match) => match <= next));
               }}
             />
