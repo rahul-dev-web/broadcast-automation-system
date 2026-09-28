@@ -392,3 +392,30 @@
     animation: none !important;
   }
 }
+
+
+/* OBS browser-source sharpness */
+.ff-broadcast-root {
+  width: 100vw;
+  min-width: 100%;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+.ff-broadcast-root .ff-stage-mount,
+.ff-broadcast-root .ff-stage {
+  width: 100%;
+  min-width: 100%;
+}
+.ff-live-stage {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+.ff-live-top,
+.ff-standings,
+.ff-player-focus,
+.ff-live-score-strip,
+.ff-live-brand-watermark {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
