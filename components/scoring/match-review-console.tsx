@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getMatchReviewData,
   updateReviewKills,
@@ -14,30 +14,48 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const requestRef = useRef(0);
+  const inFlightRef = useRef(false);
+  const dataRef = useRef<MatchReviewData | null>(null);
 
   const load = useCallback(async (showLoading = true) => {
+    // Never allow overlapping background reads to race and put an older snapshot
+    // back into state after a newer REVIEW snapshot has already arrived.
+    if (!showLoading && inFlightRef.current) return;
+    const requestId = ++requestRef.current;
+    inFlightRef.current = true;
     if (showLoading) setLoading(true);
     setError("");
     try {
-      setData(await getMatchReviewData(tournamentId, matchNumber));
+      const next = await getMatchReviewData(tournamentId, matchNumber);
+      if (requestId !== requestRef.current) return;
+      dataRef.current = next;
+      setData(next);
     } catch (caught) {
+      if (requestId !== requestRef.current) return;
       setError(caught instanceof Error ? caught.message : "Could not load review.");
     } finally {
-      if (showLoading) setLoading(false);
+      if (requestId === requestRef.current) {
+        inFlightRef.current = false;
+        if (showLoading) setLoading(false);
+      }
     }
   }, [tournamentId, matchNumber]);
 
   useEffect(() => { void load(); }, [load]);
 
-  // Keep the review screen synchronized during the LIVE → REVIEW transition as well.
-  // The review route can mount before the match/session writes finish. Polling only after
-  // we already see REVIEW would leave that stale LIVE snapshot stuck.
-  // Background refresh uses load(false), so the page does not flash/reset or jump scroll.
+  // Keep the review route synchronized from the moment it mounts. The route may render
+  // before the LIVE → REVIEW database writes have become visible to the first read.
+  // Polling is single-flight so an older response can never overwrite a newer snapshot.
+  // This removes the need to leave/re-open the page just to make VERIFY & PUBLISH appear.
   useEffect(() => {
-    if (!data || data.officialResultExists || data.matchStatus === "VERIFIED") return;
-    const timer = window.setInterval(() => { void load(false); }, 700);
+    const timer = window.setInterval(() => {
+      const current = dataRef.current;
+      if (current?.officialResultExists || current?.matchStatus === "VERIFIED") return;
+      void load(false);
+    }, 600);
     return () => window.clearInterval(timer);
-  }, [data?.matchStatus, data?.officialResultExists, load]);
+  }, [load]);
 
   async function changeKills(team: MatchReviewTeam, delta: number) {
     if (!data || data.matchStatus !== "REVIEW") return;
