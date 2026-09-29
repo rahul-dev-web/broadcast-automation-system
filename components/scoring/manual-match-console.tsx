@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   eliminateTeam,
   finishManualMatch,
@@ -19,6 +20,7 @@ export function ManualMatchConsole({ tournamentId, matchNumber }: { tournamentId
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const load = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true); setError("");
@@ -85,7 +87,14 @@ export function ManualMatchConsole({ tournamentId, matchNumber }: { tournamentId
           }}>START MATCH</button>}
           {canFinish && <button className="primary-button" disabled={busy !== null} onClick={async () => {
             setBusy("finish"); setError("");
-            try { await finishManualMatch(data.matchId); await load(); }
+            try {
+              await finishManualMatch(data.matchId);
+              // Go directly to the review gate after the match is finalized.
+              // The review screen owns its own LIVE → REVIEW synchronization.
+              router.replace(
+                `/matches/review?tournament=${encodeURIComponent(tournamentId)}&match=${data.matchNumber}`,
+              );
+            }
             catch (e) { setError(e instanceof Error ? e.message : "Could not finish match."); }
             finally { setBusy(null); }
           }}>END MATCH → REVIEW</button>}
