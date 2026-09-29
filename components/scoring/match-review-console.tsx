@@ -29,11 +29,13 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
 
   useEffect(() => { void load(); }, [load]);
 
-  // Keep the review screen synchronized while the match transitions from LIVE
-  // to REVIEW, so a transient database/realtime race cannot hide verification.
+  // Keep the review screen synchronized during the LIVE → REVIEW transition as well.
+  // The review route can mount before the match/session writes finish. Polling only after
+  // we already see REVIEW would leave that stale LIVE snapshot stuck.
+  // Background refresh uses load(false), so the page does not flash/reset or jump scroll.
   useEffect(() => {
-    if (!data || data.matchStatus !== "REVIEW" || data.officialResultExists) return;
-    const timer = window.setInterval(() => { void load(false); }, 1000);
+    if (!data || data.officialResultExists || data.matchStatus === "VERIFIED") return;
+    const timer = window.setInterval(() => { void load(false); }, 700);
     return () => window.clearInterval(timer);
   }, [data?.matchStatus, data?.officialResultExists, load]);
 
