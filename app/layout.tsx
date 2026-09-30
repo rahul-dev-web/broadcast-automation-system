@@ -19,4 +19,5 @@ export default function RootLayout({
     </html>
   );
 }
-\nimport "./saas.css";\n
+
+import "./saas.css";
