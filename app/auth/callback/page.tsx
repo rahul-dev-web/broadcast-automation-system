@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState("");
 
   useEffect(() => {
     void (async () => {
-      const code = searchParams.get("code");
-      const tokenHash = searchParams.get("token_hash");
-      const type = searchParams.get("type");
-      const next = searchParams.get("next");
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      const next = params.get("next");
       const destination =
         next && next.startsWith("/") && !next.startsWith("//")
           ? next
@@ -52,7 +52,7 @@ export default function AuthCallbackPage() {
 
       router.replace("/auth/login/");
     })();
-  }, [router, searchParams]);
+  }, [router]);
 
   return (
     <main className="auth-shell">
