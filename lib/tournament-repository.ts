@@ -28,11 +28,29 @@ export async function createTournament(draft: TournamentDraft) {
     }
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Please sign in before creating a tournament.");
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .in("role", ["OWNER", "OPERATOR"])
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (membershipError) throw membershipError;
+  if (!membership?.organization_id) throw new Error("No operator workspace is available for this account.");
+
   const { data: tournament, error: tournamentError } = await supabase
     .from("tournaments")
     .insert({
       name: draft.name.trim(),
       total_matches: draft.totalMatches,
+      organization_id: membership.organization_id,
+      created_by: user.id,
+      quota_exempt: false,
       pt_mode: draft.presentationMode,
       selected_pt_matches:
         draft.presentationMode === "CUSTOM" ? draft.customMatches : [],
