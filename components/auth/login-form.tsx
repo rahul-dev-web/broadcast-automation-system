@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,7 +28,7 @@ export function LoginForm() {
       return;
     }
 
-    const next = searchParams.get("next");
+    const next = new URLSearchParams(window.location.search).get("next");
     router.replace(next?.startsWith("/") ? next : "/dashboard/");
     router.refresh();
   }
