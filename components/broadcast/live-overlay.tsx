@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 import { createBroadcastClient } from "@/lib/supabase/client";
-import { DEFAULT_THEME_CONFIG, normalizeTheme, themeCssVariables, type BroadcastThemeConfig } from "@/lib/broadcast-theme";
+import { DEFAULT_THEME_CONFIG, normalizeTheme, themeCssVariables, type BroadcastThemeConfig, type BroadcastStage as ThemeStage } from "@/lib/broadcast-theme";
 import type { BroadcastStage } from "@/lib/types/tournament";
 
 interface OverlayPlayer { id: string; slot: number; displayName: string; inGameName: string; substitute: boolean; }
@@ -392,7 +392,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
 
   return (
-    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()}`} style={themeCssVariables(theme, stage as import("@/lib/broadcast-theme").BroadcastStage)}>
+    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()}`} style={themeCssVariables(theme, stage as ThemeStage)}>
       <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
       <div className="ff-bg" />
       <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} theme={theme} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
