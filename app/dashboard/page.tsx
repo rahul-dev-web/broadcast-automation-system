@@ -1,117 +1,13 @@
 "use client";
-
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-type TournamentRow = {
-  id: string;
-  name: string;
-  total_matches: number;
-  status: string | null;
-  created_at: string | null;
-};
-
-export default function DashboardPage() {
-  const [tournaments, setTournaments] = useState<TournamentRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const loadTournaments = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    const { data, error: queryError } = await supabase
-      .from("tournaments")
-      .select("id, name, total_matches, status, created_at")
-      .order("created_at", { ascending: false });
-    if (queryError) {
-      setError(queryError.message);
-      setTournaments([]);
-    } else {
-      setTournaments((data ?? []) as TournamentRow[]);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { void loadTournaments(); }, [loadTournaments]);
-
-  return (
-    <main className="shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">OPERATOR</p>
-          <h1>Broadcast Control</h1>
-          <p className="muted">Your created tournaments and their broadcast sessions.</p>
-        </div>
-        <Link className="primary-button" href="/tournaments/new/">
-          + New Tournament
-        </Link>
-      </header>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">TOURNAMENT WORKSPACE</p>
-            <h2>Created tournaments</h2>
-          </div>
-          <button className="ghost-button" type="button" onClick={() => void loadTournaments()} disabled={loading}>
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
-        {error && <div className="error-banner" role="alert">Could not load tournaments: {error}</div>}
-        {loading ? (
-          <p className="muted">Loading tournaments from Supabase…</p>
-        ) : tournaments.length === 0 ? (
-          <div className="empty-state">
-            <h3>No tournaments created yet</h3>
-            <p className="muted">Create a tournament to see it listed here and open its control room.</p>
-            <Link className="primary-button" href="/tournaments/new/">Create first tournament</Link>
-          </div>
-        ) : (
-          <div className="tournament-list">
-            {tournaments.map((tournament) => (
-              <article className="tournament-list-card" key={tournament.id}>
-                <div className="tournament-list-main">
-                  <p className="eyebrow">{tournament.status || "READY"}</p>
-                  <h3>{tournament.name}</h3>
-                  <p className="muted">{tournament.total_matches} planned matches</p>
-                  {tournament.created_at && (
-                    <p className="tournament-created">Created {new Date(tournament.created_at).toLocaleString()}</p>
-                  )}
-                </div>
-                <Link
-                  className="primary-button"
-                  href={`/broadcast/control?tournament=${encodeURIComponent(tournament.id)}`}
-                >
-                  Start / Open Control
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="grid-2">
-        <article className="panel">
-          <div className="panel-header">
-            <div><p className="eyebrow">CONFIGURATION</p><h2>Event setup</h2></div>
-            <span className="status-pill">UP TO 12 TEAMS</span>
-          </div>
-          <p className="muted">Configure teams, player rosters, match count and points-table presentation before opening the broadcast controller.</p>
-          <div className="stat-row">
-            <div><span className="stat-value">12</span><span className="stat-label">Team slots</span></div>
-            <div><span className="stat-value">5</span><span className="stat-label">Players / team</span></div>
-            <div><span className="stat-value">3</span><span className="stat-label">PT modes</span></div>
-          </div>
-          <Link className="ghost-button" href="/tournaments/new/">Open tournament setup</Link>
-        </article>
-        <article className="panel">
-          <p className="eyebrow">OPERATOR FLOW</p>
-          <h2>Setup → Control → Live</h2>
-          <p className="muted">Choose a tournament below and open its control room. Use “START AUTOMATION” there to begin its roster and broadcast sequence.</p>
-          <p className="muted">The control room is connected to that tournament’s saved Supabase session.</p>
-        </article>
-      </section>
-    </main>
-  );
-}
+export default function DashboardPage(){
+ const [email,setEmail]=useState(""); const [org,setOrg]=useState<any>(null); const [tournaments,setTournaments]=useState<any[]>([]); const [error,setError]=useState("");
+ useEffect(()=>{(async()=>{const {data:{user}}=await supabase.auth.getUser();if(!user)return;setEmail(user.email??"");const {data:m}=await supabase.from("organization_members").select("organization_id,role").eq("user_id",user.id).limit(1).maybeSingle();if(!m){setError("Workspace not found");return;}const [{data:o},{data:s},{data:t}]=await Promise.all([supabase.from("organizations").select("id,name").eq("id",m.organization_id).single(),supabase.from("subscriptions").select("status,expires_at,included_tournaments,addon_tournaments,subscription_plans(name)").eq("organization_id",m.organization_id).maybeSingle(),supabase.from("tournaments").select("id,name,total_matches,quota_exempt").eq("organization_id",m.organization_id).order("created_at",{ascending:false})]);const p=Array.isArray(s?.subscription_plans)?s?.subscription_plans[0]:s?.subscription_plans;setOrg({...m,...o,...s,plan:p?.name??"No membership"});setTournaments(t??[]);})();},[]);
+ async function token(id:string){const {data,error}=await supabase.rpc("issue_broadcast_token",{p_tournament_id:id});if(error){setError(error.message);return;}alert(window.location.origin+"/overlay/live?tournament="+encodeURIComponent(id)+"&token="+encodeURIComponent(data));}
+ async function logout(){await supabase.auth.signOut();window.location.href="/";}
+ const used=tournaments.filter(t=>!t.quota_exempt).length; const quota=(org?.included_tournaments??0)+(org?.addon_tournaments??0);
+ return <main className="saas-shell"><div className="saas-wrap"><nav className="saas-nav"><div><p className="eyebrow">ARENACAST WORKSPACE</p><h1 class="saas-title">{org?.name??"Workspace"}</h1><p class="saas-muted">{email} · {org?.role}</p></div><div className="saas-actions"><Link class="saas-button" href="/#pricing">Membership</Link>{org?.role!=="VIEWER"&&<Link className="saas-button primary" href="/tournaments/new/">+ New tournament</Link>}{org?.role==="OWNER"&&<Link class="saas-button" href="/admin/">Platform admin</Link>=<button className="saas-button" onClick={logout}>Sign out</button></div></nav>
+ {error&&<div class="error-banner">{error}</div>}<section className="saas-grid"><article class="saas-card"><p class="saas-muted">MEMBERSHIP</p><div className="saas-kpi">{org?.plan??"Pending"}</div><p class="saas-muted">{org?.status??"NOT ACTIVE"}</p></article><article class="saas-card"><p class="saas-muted">TOURNAMENT QUOTA</p><div class="saas-kpi">{used} / {quota}</div><p class="saas-muted">Starter: first activation 5 · renewal 4 · +2 for ₹100</p></article><article class="saas-card"><p class="saas-muted">EXPIRY</p><div class="saas-kpi">{org?.expires_at?new Date(org.expires_at).toLocaleDateString("en-IN"):"Pending"}</div><p class="saas-muted">Pro and Agency are Coming Soon.</p></article></section><section class="saas-card" style={{marginTop:14}}><h2>Your tournaments</h2><p class="saas-muted">Legacy development tournaments are quota-exempt.</p>{tournaments.map(t=><article class="saas-card" style={{marginTop:10}} key={t.id}><strong>{t.name}</strong><p class="saas-muted">{t.total_matches} matches · {t.quota_exempt?"legacy":"membership quota"}</p><div class="saas-actions"><Link class="saas-button" href={"/broadcast/control/?tournament="+encodeURIComponent(t.id)}>Broadcast</Link><button class="saas-button" onClick={()=>token(t.id)}>Generate OBS URL</button></div></article>)}</section></div></main>;}
