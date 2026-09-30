@@ -20,13 +20,10 @@ create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer set search_path = ''
 as $$
-declare new_org_id uuid; assigned_role text;
+declare new_org_id uuid;
 begin
-  assigned_role := case when lower(coalesce(new.email, '')) = 'jaraho9@gmail.com'
-    then 'PLATFORM_ADMIN' else 'USER' end;
-
   insert into public.profiles (id,email,full_name,platform_role)
-  values (new.id,coalesce(new.email,''),nullif(new.raw_user_meta_data ->> 'full_name',''),assigned_role);
+  values (new.id,coalesce(new.email,''),nullif(new.raw_user_meta_data ->> 'full_name',''),'USER');
 
   insert into public.organizations (name,owner_id)
   values (
