@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className={styles.navLinks}>
           <a href="#platform">Platform</a>
           <a href="#workflow">How it works</a>
-          <a href="#features">Features</a>
+          <a href="#features">Features</a><a href="#pricing">Pricing</a>
           <Link className={styles.navCta} href="/dashboard/">Operator Dashboard ↗</Link>
         </div>
       </nav>
@@ -82,6 +82,18 @@ export default function HomePage() {
           <article className={styles.step}><span className={styles.stepNo}>STEP 02 / PRESENT</span><h3>Bring up the broadcast</h3><p>Show roster pages and move into the room scene.</p></article>
           <article className={styles.step}><span className={styles.stepNo}>STEP 03 / OPERATE</span><h3>Run and score the match</h3><p>Track kills, record eliminations and calculate placements.</p></article>
           <article className={styles.step}><span className={styles.stepNo}>STEP 04 / VERIFY</span><h3>Review and publish</h3><p>Confirm the result, then advance to points and standings.</p></article>
+        </div>
+      </section>
+
+      <section className={styles.section} id="pricing">
+        <div className={styles.sectionHead}>
+          <div><p className={styles.sectionKicker}>MEMBERSHIP</p><h2 className={styles.sectionTitle}>Choose your broadcast capability.</h2></div>
+          <p className={styles.sectionDesc}>Membership activation is manual for now. Pro and Agency automation are shown as Coming Soon until those features are released.</p>
+        </div>
+        <div className={styles.pricingGrid}>
+          <article className={styles.priceCard}><div className={styles.priceTop}><span className={styles.planTag}>STARTER</span><span className={styles.available}>AVAILABLE</span></div><h3>Manual Scoring</h3><div className={styles.price}>₹299 <small>/ 1 month</small></div><p className={styles.priceNote}>First activation: <b>5 tournaments</b> · Renewal: <b>4 tournaments</b></p><p className={styles.priceNote}>Add <b>2 tournaments for ₹100</b> during the active month.</p><Link className={styles.primary} href="/auth/signup/">Start Starter</Link><div className={styles.featureList}>{[[true,"Tournament & roster setup"],[true,"Manual kill & elimination scoring"],[true,"Review / Verify & Publish"],[true,"Broadcast scene workflow"],[true,"OBS browser-source overlay"],[true,"Overall standings & results"],[false,"OCR auto calculation"],[false,"Realtime auto calculation"],[false,"Player tracking system"]].map(([ok,label])=><div key={String(label)} className={ok?styles.featureYes:styles.featureNo}><span>{ok?"✓":"×"}</span>{label}</div>)}</div></article>
+          <article className={styles.priceCard}><div className={styles.priceTop}><span className={styles.planTag}>PRO</span><span className={styles.comingSoon}>COMING SOON</span></div><h3>OCR Automation</h3><div className={styles.price}>₹999 <small>/ 1 month</small></div><p className={styles.priceNote}>First activation: <b>15 tournaments</b> · Add <b>2 for ₹150</b>.</p><button className={styles.disabledPrice} type="button" disabled>Coming Soon</button><div className={styles.featureList}>{[[true,"Everything in Manual Scoring"],[true,"OCR auto calculation (~30 sec latency)"],[true,"Final standings OCR"],[true,"Live player OCR"],[false,"Realtime auto calculation"],[false,"Player tracking system"]].map(([ok,label])=><div key={String(label)} className={ok?styles.featureYes:styles.featureNo}><span>{ok?"✓":"×"}</span>{label}</div>)}</div></article>
+          <article className={styles.priceCard}><div className={styles.priceTop}><span className={styles.planTag}>AGENCY</span><span className={styles.comingSoon}>COMING SOON</span></div><h3>Agency Automation</h3><div className={styles.price}>Custom <small>/ membership</small></div><p className={styles.priceNote}>Realtime automation layer for larger tournament operations.</p><button className={styles.disabledPrice} type="button" disabled>Coming Soon</button><div className={styles.featureList}>{[[true,"Everything in OCR Automation"],[true,"Realtime auto calculation"],[true,"Player tracking system"],[true,"Advanced broadcast automation"],[true,"Multi-operator agency workspace"]].map(([ok,label])=><div key={String(label)} className={ok?styles.featureYes:styles.featureNo}><span>{ok?"✓":"×"}</span>{label}</div>)}</div></article>
         </div>
       </section>
 
