@@ -6,9 +6,16 @@ import { supabase } from "@/lib/supabase/client";
 type Row={id:string;name:string;owner_id:string;owner_email?:string;plan?:string;status?:string;expires_at?:string|null;included?:number;addons?:number;used:number;activations?:number};
 
 export function PlatformAdmin() {
-  const [rows,setRows]=useState<Row[]>([]); const [plans,setPlans]=useState<any[]>([]); const [loading,setLoading]=useState(true); const [message,setMessage]=useState(""); const [error,setError]=useState("");
+  const [authorized,setAuthorized]=useState<boolean | null>(null); const [rows,setRows]=useState<Row[]>([]); const [plans,setPlans]=useState<any[]>([]); const [loading,setLoading]=useState(true); const [message,setMessage]=useState(""); const [error,setError]=useState("");
   async function load(){
     setLoading(true);setError("");
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user){window.location.href="/auth/login/?next=/admin/";return;}
+    const {data:profile}=await supabase.from("profiles").select("platform_role").eq("id",user.id).maybeSingle();
+    const allowed=Boolean(profile?.platform_role==="PLATFORM_ADMIN" && (user.email??"").toLowerCase()==="jaraho9@gmail.com");
+    setAuthorized(allowed);
+    if(!allowed){setLoading(false);return;}
+
     const [{data:profiles},{data:orgs,error:orgError},{data:subs},{data:planRows},{data:tournaments}]=await Promise.all([
       supabase.from("profiles").select("id,email"),supabase.from("organizations").select("id,name,owner_id").order("created_at",{ascending:true}),
       supabase.from("subscriptions").select("organization_id,plan_id,status,expires_at,included_tournaments,addon_tournaments,activation_count"),
@@ -20,6 +27,8 @@ export function PlatformAdmin() {
     setRows(built);setPlans(planRows??[]);setLoading(false);
   }
   useEffect(()=>{void load();},[]);
+  if(authorized===null || loading && authorized===null) return <main className="saas-shell"><div className="saas-wrap"><div className="saas-card">Checking platform access…</div></div></main>;
+  if(!authorized) return <main className="saas-shell"><div className="saas-wrap"><div className="saas-card"><p className="eyebrow">PLATFORM CONTROL</p><h1 className="saas-title">Access denied</h1><p className="saas-muted">Platform Admin is restricted to the designated platform administrator account.</p></div></div></main>;
   async function activate(id:string,plan:string){setError("");setMessage("");const {error:e}=await supabase.rpc("platform_activate_subscription",{p_organization_id:id,p_plan_id:plan,p_days:30});if(e)setError(e.message);else{setMessage("Membership activated / renewed.");void load();}}
   async function addCredits(id:string){const {error:e}=await supabase.rpc("platform_add_tournament_credits",{p_organization_id:id,p_credits:2});if(e)setError(e.message);else{setMessage("Added 2 tournament credits.");void load();}}
   async function setStatus(id:string,status:string){const {error:e}=await supabase.rpc("platform_set_subscription_status",{p_organization_id:id,p_status:status});if(e)setError(e.message);else void load();}
