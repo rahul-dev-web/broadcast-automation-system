@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
-import { supabase } from "@/lib/supabase/client";
+import { createBroadcastClient } from "@/lib/supabase/client";
 import type { BroadcastStage } from "@/lib/types/tournament";
 
 interface OverlayPlayer { id: string; slot: number; displayName: string; inGameName: string; substitute: boolean; }
@@ -225,7 +225,8 @@ function SimpleStage({ stage }: { stage: BroadcastStage }) {
   );
 }
 
-export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
+export function LiveOverlay({ tournamentId, token }: { tournamentId: string; token: string }) {
+  const overlaySupabase = useMemo(() => createBroadcastClient(token), [token]);
   const [state, setState] = useState<BroadcastStatePayload>({ ...initialState, tournamentId });
   const [connection, setConnection] = useState("CONNECTING");
   const [hydrated, setHydrated] = useState(false);
@@ -236,9 +237,9 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
     setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
     try {
       const [tournamentResult, teamsResult, matchResult] = await Promise.all([
-        supabase.from("tournaments").select("name, total_matches").eq("id", tournamentId).single(),
-        supabase.from("teams").select("id, team_number, team_name, team_prefix, logo_url").eq("tournament_id", tournamentId).eq("is_active", true).order("team_number"),
-        supabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).eq("match_number", matchNumber).maybeSingle(),
+        overlaySupabase.from("tournaments").select("name, total_matches").eq("id", tournamentId).single(),
+        overlaySupabase.from("teams").select("id, team_number, team_name, team_prefix, logo_url").eq("tournament_id", tournamentId).eq("is_active", true).order("team_number"),
+        overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).eq("match_number", matchNumber).maybeSingle(),
       ]);
       if (tournamentResult.error) throw tournamentResult.error;
       if (teamsResult.error) throw teamsResult.error;
@@ -250,7 +251,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
 
       const teamIds = teams.map(team => team.id);
       if (teamIds.length) {
-        const playersResult = await supabase.from("players").select("id, team_id, slot_number, display_name, in_game_name, is_substitute").in("team_id", teamIds).order("slot_number");
+        const playersResult = await overlaySupabase.from("players").select("id, team_id, slot_number, display_name, in_game_name, is_substitute").in("team_id", teamIds).order("slot_number");
         if (playersResult.error) throw playersResult.error;
         for (const player of playersResult.data ?? []) {
           const team = teams.find(item => item.id === player.team_id);
@@ -260,7 +261,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
 
       let scores: OverlayScore[] = [];
       if (matchResult.data?.id) {
-        const scoreResult = await supabase.from("match_team_state").select("team_id, kills, placement, kill_points, position_points, total_points, elimination_status").eq("match_id", matchResult.data.id);
+        const scoreResult = await overlaySupabase.from("match_team_state").select("team_id, kills, placement, kill_points, position_points, total_points, elimination_status").eq("match_id", matchResult.data.id);
         if (scoreResult.error) throw scoreResult.error;
         scores = (scoreResult.data ?? []).map(row => {
           const team = teams.find(item => item.id === row.team_id);
@@ -271,11 +272,11 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
         });
       }
 
-      const matchListResult = await supabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).order("match_number");
+      const matchListResult = await overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).order("match_number");
       if (matchListResult.error) throw matchListResult.error;
       let overall = [...scores];
       if ((matchListResult.data ?? []).length) {
-        const statesResult = await supabase.from("match_team_state").select("match_id, team_id, kills, total_points").in("match_id", (matchListResult.data ?? []).map(match => match.id));
+        const statesResult = await overlaySupabase.from("match_team_state").select("match_id, team_id, kills, total_points").in("match_id", (matchListResult.data ?? []).map(match => match.id));
         if (statesResult.error) throw statesResult.error;
         const totals = new Map<string, { kills: number; points: number }>();
         for (const row of statesResult.data ?? []) {
@@ -309,7 +310,7 @@ export function LiveOverlay({ tournamentId }: { tournamentId: string }) {
     channel.subscribe(status => { if (active) setConnection(status); });
 
     void (async () => {
-      const { data: session, error } = await supabase.from("broadcast_sessions").select("state, state_payload, updated_at").eq("tournament_id", tournamentId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: session, error } = await overlaySupabase.from("broadcast_sessions").select("state, state_payload, updated_at").eq("tournament_id", tournamentId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (!active) return;
       if (!error && session) {
         const payload = { ...((session.state_payload ?? {}) as Record<string, unknown>), stage: session.state, updatedAt: session.updated_at };
