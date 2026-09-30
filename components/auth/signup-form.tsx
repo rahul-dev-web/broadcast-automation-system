@@ -23,7 +23,10 @@ export function SignupForm() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { full_name: name.trim() } },
+      options: {
+        data: { full_name: name.trim() },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/`,
+      },
     });
 
     if (signUpError) {
@@ -32,14 +35,19 @@ export function SignupForm() {
       return;
     }
 
-    if (data.session) {
-      router.replace("/dashboard/");
-      router.refresh();
+    // When email confirmation is required, Supabase intentionally returns no session.
+    // Do not bypass that gate by redirecting to the dashboard.
+    if (!data.session) {
+      setMessage(
+        "Account created. Check your email and click the confirmation link to activate your account. After confirmation, you will be redirected to your workspace.",
+      );
+      setBusy(false);
       return;
     }
 
-    setMessage("Account created. If email confirmation is enabled in Supabase Auth, confirm your email before signing in.");
-    setBusy(false);
+    // Useful for projects where email confirmation is disabled in development.
+    router.replace("/dashboard/");
+    router.refresh();
   }
 
   return (
@@ -47,7 +55,10 @@ export function SignupForm() {
       <section className="auth-card">
         <p className="eyebrow">START YOUR WORKSPACE</p>
         <h1>Create your account</h1>
-        <p className="muted">Membership activation is handled manually for now. Your first Starter activation is ₹299 for 30 days and includes 5 tournaments.</p>
+        <p className="muted">
+          Confirm your email before accessing the workspace. Membership activation is handled manually for now.
+          Your first Starter activation is ₹299 for 30 days and includes 5 tournaments.
+        </p>
 
         <form className="auth-form" onSubmit={submit}>
           <label className="field">
