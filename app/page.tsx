@@ -1,7 +1,33 @@
+"use client";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import styles from "./home.module.css";
 
 export default function HomePage() {
+  const [authReady, setAuthReady] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsSignedIn(Boolean(user));
+      setAuthReady(true);
+    };
+    void syncAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(Boolean(session?.user));
+      setAuthReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const primaryActionHref = authReady && isSignedIn ? "/tournaments/new/" : "/auth/signup/";
+  const primaryActionLabel = authReady && isSignedIn ? "Create a Tournament" : "Sign up / Sign in";
+  const dashboardLabel = authReady && isSignedIn ? "Operator Dashboard ↗" : "Sign in to Dashboard ↗";
+
   return (
     <main className={styles.home}>
       <nav className={styles.nav} aria-label="Main navigation">
@@ -13,7 +39,7 @@ export default function HomePage() {
           <a href="#platform">Platform</a>
           <a href="#workflow">How it works</a>
           <a href="#features">Features</a><a href="#pricing">Pricing</a>
-          <Link className={styles.navCta} href="/dashboard/">Operator Dashboard ↗</Link>
+          <Link className={styles.navCta} href={authReady && isSignedIn ? "/dashboard/" : "/auth/login/?next=/dashboard/"}>{dashboardLabel}</Link>
         </div>
       </nav>
 
@@ -26,7 +52,7 @@ export default function HomePage() {
             verify results and move your broadcast through every stage—from team introductions to final standings.
           </p>
           <div className={styles.actions}>
-            <Link className={styles.primary} href="/tournaments/new/">Create a Tournament <span>→</span></Link>
+            <Link className={styles.primary} href={primaryActionHref}>{primaryActionLabel} <span>→</span></Link>
             <Link className={styles.secondary} href="/dashboard/">Enter Operator Dashboard ↗</Link>
           </div>
           <p className={styles.micro}>ROSTER MANAGEMENT&nbsp; / &nbsp;MATCH CONTROL&nbsp; / &nbsp;RESULT VERIFICATION&nbsp; / &nbsp;BROWSER OVERLAYS</p>
@@ -99,7 +125,7 @@ export default function HomePage() {
 
       <section className={styles.cta}>
         <div><p className={styles.sectionKicker}>READY WHEN YOUR LOBBY IS</p><h2>Take control of your next tournament.</h2><p>Start with tournament setup or jump back into your operator workspace.</p></div>
-        <Link className={styles.primary} href="/tournaments/new/">Create Tournament&nbsp; →</Link>
+        <Link className={styles.primary} href={primaryActionHref}>{authReady && isSignedIn ? "Create Tournament" : "Sign up / Sign in"}&nbsp; →</Link>
       </section>
 
       <footer className={styles.bottom}><span>© 2026 ARENACAST · ESPORTS BROADCAST CONTROL</span><span>OPERATOR-LED · BUILT FOR COMPETITIVE TOURNAMENTS</span></footer>
