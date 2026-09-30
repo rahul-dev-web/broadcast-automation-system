@@ -25,7 +25,7 @@ export function SignupForm() {
       password,
       options: {
         data: { full_name: name.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard/`,
       },
     });
 
