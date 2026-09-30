@@ -352,7 +352,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     // that keeps the browser source moving even if one broadcast event is missed.
     const timer = window.setInterval(async () => {
       try {
-        const { data: session } = await supabase
+        const { data: session } = await overlaySupabase
           .from("broadcast_sessions")
           .select("state, state_payload, updated_at")
           .eq("tournament_id", tournamentId)
