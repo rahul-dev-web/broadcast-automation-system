@@ -37,7 +37,7 @@ The SaaS schema was applied to the connected Supabase project during this implem
 
 Platform Admin is a protected platform role. It is not assigned to the first account anymore.
 
-The Supabase trigger assigns `PLATFORM_ADMIN` only when the Auth email matches the designated administrator address, and the database helper additionally requires that exact Auth email plus the profile role. Normal authenticated users cannot update the authorization-sensitive profile columns through the Data API.
+The public signup trigger always creates `USER` accounts. The designated Auth account is provisioned separately and then marked `PLATFORM_ADMIN`; the database helper additionally requires that exact Auth email plus the profile role. Normal authenticated users cannot update the authorization-sensitive profile columns through the Data API.
 
 The frontend `/admin/` route is an additional UX gate, but Supabase RLS and the guarded platform subscription RPCs remain the security boundary.
 
