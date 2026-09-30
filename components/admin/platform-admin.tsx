@@ -12,7 +12,7 @@ export function PlatformAdmin() {
     const {data:{user}}=await supabase.auth.getUser();
     if(!user){window.location.href="/auth/login/?next=/admin/";return;}
     const {data:profile}=await supabase.from("profiles").select("platform_role").eq("id",user.id).maybeSingle();
-    const allowed=Boolean(profile?.platform_role==="PLATFORM_ADMIN" && (user.email??"").toLowerCase()==="jaraho9@gmail.com");
+    const allowed=Boolean(profile?.platform_role==="PLATFORM_ADMIN" && (user.email??"").toLowerCase()==="jarahul989@gmail.com");
     setAuthorized(allowed);
     if(!allowed){setLoading(false);return;}
 
