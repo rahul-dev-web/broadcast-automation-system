@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -17,7 +18,7 @@ export function LoginForm() {
     setBusy(true);
     setError("");
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -28,7 +29,14 @@ export function LoginForm() {
       return;
     }
 
-    const next = new URLSearchParams(window.location.search).get("next");
+    if (!data.user?.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setError("Please confirm your email address before signing in.");
+      setBusy(false);
+      return;
+    }
+
+    const next = searchParams.get("next");
     router.replace(next?.startsWith("/") ? next : "/dashboard/");
     router.refresh();
   }
@@ -38,7 +46,7 @@ export function LoginForm() {
       <section className="auth-card">
         <p className="eyebrow">ARENACAST SAAS</p>
         <h1>Sign in to your workspace</h1>
-        <p className="muted">Run tournaments, scoring and broadcast control from your customer workspace.</p>
+        <p className="muted">Confirm your email first, then sign in to run tournaments, scoring and broadcast control.</p>
 
         <form className="auth-form" onSubmit={submit}>
           <label className="field">
