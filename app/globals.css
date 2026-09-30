@@ -1511,3 +1511,7 @@ body:has(.broadcast-overlay) {
   .theme-preview-frame { aspect-ratio: 16 / 10; }
   .theme-preview-frame .ff-global-header { transform: scale(.6); }
 }
+
+.theme-preview-frame .ff-stage { min-height: 0 !important; height: 100%; }
+.theme-preview-frame .ff-stage-footer,
+.theme-preview-frame .ff-global-footer { transform: scale(.72); transform-origin: bottom left; }
