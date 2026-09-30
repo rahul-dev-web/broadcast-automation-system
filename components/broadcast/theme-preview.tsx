@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
   normalizeTheme,
   themeCssVariables,
