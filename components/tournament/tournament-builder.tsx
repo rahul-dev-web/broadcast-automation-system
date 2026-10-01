@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
 import { createTournament } from "@/lib/tournament-repository";
