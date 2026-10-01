@@ -21,6 +21,7 @@ export type AnimationSpec = {
 export type BroadcastDesignConfig = {
   version: number;
   layout: { style: string; density: "LOW" | "MEDIUM" | "HIGH"; safeMargin: number };
+  typography: { headingWeight: number; bodyWeight: number; tracking: string };
   animations: {
     entry: AnimationSpec;
     exit: AnimationSpec;
@@ -86,14 +87,62 @@ export const ASSET_SLOTS = [
   { slot: "outro_thank_you", label: "Thank-you / outro video", type: "OUTRO", accept: "video/mp4,video/webm,image/png,image/webp" },
 ] as const;
 
+export const SYSTEM_DESIGN_PRESETS = [
+  {
+    presetId: "angular-arena",
+    name: "Angular Arena",
+    description: "Sharp esports geometry with high-energy motion and strong HUD framing.",
+    style: "ANGULAR",
+    density: "HIGH",
+    safeMargin: 48,
+    headingWeight: 900,
+    bodyWeight: 600,
+    tracking: ".08em",
+  },
+  {
+    presetId: "championship-cinematic",
+    name: "Championship Cinematic",
+    description: "Premium championship presentation with cinematic pacing and large type.",
+    style: "CINEMATIC",
+    density: "MEDIUM",
+    safeMargin: 56,
+    headingWeight: 800,
+    bodyWeight: 500,
+    tracking: ".14em",
+  },
+  {
+    presetId: "future-grid",
+    name: "Future Grid",
+    description: "Technology-led broadcast language with modular HUD panels and digital motion.",
+    style: "GRID",
+    density: "HIGH",
+    safeMargin: 40,
+    headingWeight: 900,
+    bodyWeight: 600,
+    tracking: ".10em",
+  },
+  {
+    presetId: "minimal-broadcast",
+    name: "Minimal Broadcast",
+    description: "Clean information-first package with restrained motion and transparent gameplay presentation.",
+    style: "MINIMAL",
+    density: "LOW",
+    safeMargin: 64,
+    headingWeight: 750,
+    bodyWeight: 500,
+    tracking: ".05em",
+  },
+] as const;
+
 export const ANIMATION_TYPES = [
-  "NONE","FADE","SLIDE_LEFT","SLIDE_RIGHT","SLIDE_UP","SLIDE_DOWN",
+  "NONE","FADE","FADE_UP","SLIDE_LEFT","SLIDE_RIGHT","SLIDE_UP","SLIDE_DOWN",
   "SCALE","REVEAL","WIPE","CLIP","SCAN_REVEAL","GLITCH_OUT","DATA_IN","DIGITAL_WIPE",
 ] as const;
 
 export const DEFAULT_DESIGN_CONFIG: BroadcastDesignConfig = {
   version: 1,
   layout: { style: "MINIMAL", density: "MEDIUM", safeMargin: 48 },
+  typography: { headingWeight: 800, bodyWeight: 500, tracking: ".07em" },
   animations: {
     entry: { type: "FADE", durationMs: 360, delayMs: 0, easing: "ease-out" },
     exit: { type: "FADE", durationMs: 260, delayMs: 0, easing: "ease-in" },
@@ -116,6 +165,7 @@ export function normalizeDesign(input?: Partial<BroadcastDesignConfig> | null): 
     ...DEFAULT_DESIGN_CONFIG,
     ...source,
     layout: { ...DEFAULT_DESIGN_CONFIG.layout, ...(source.layout ?? {}) },
+    typography: { ...DEFAULT_DESIGN_CONFIG.typography, ...(source.typography ?? {}) },
     animations: {
       entry: { ...DEFAULT_DESIGN_CONFIG.animations.entry, ...(animations.entry ?? {}) },
       exit: { ...DEFAULT_DESIGN_CONFIG.animations.exit, ...(animations.exit ?? {}) },
