@@ -548,3 +548,27 @@
     animation: none !important;
   }
 }
+
+
+/* Design Studio runtime variants. These are intentionally presentation-only:
+   tournament/scoring data and the existing HUD geometry remain unchanged. */
+.design-angular-arena .ff-stage-mount,
+.design-angular-arena .ff-transition-layer b { animation-duration: var(--design-stage-duration); }
+.design-angular-arena .ff-transition-layer { clip-path: polygon(0 0,92% 0,100% 50%,92% 100%,0 100%); }
+
+.design-championship-cinematic .ff-stage-mount { animation-duration: var(--design-stage-duration); }
+.design-championship-cinematic .ff-stage::before { inset: 5%; border-radius: 2px; }
+.design-championship-cinematic .ff-transition-layer { background: linear-gradient(90deg,transparent 0 45%,rgba(255,255,255,.12) 50%,transparent 55%); }
+
+.design-future-grid .ff-stage-mount { animation-duration: var(--design-stage-duration); }
+.design-future-grid .ff-stage::after { background-image: linear-gradient(rgba(0,229,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.08) 1px,transparent 1px); background-size:32px 32px; }
+.design-future-grid .ff-transition-layer b { letter-spacing:.18em; text-transform:uppercase; }
+
+.design-minimal .ff-stage-mount { animation-duration: var(--design-stage-duration); }
+.design-minimal .ff-stage::before { border-color: rgba(255,255,255,.06); }
+.design-minimal .ff-transition-layer { background: linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent); }
+
+/* Design packs may explicitly allow a full-stage asset. Live HUD/review stay
+   transparent unless the saved design policy says otherwise. */
+.stage-match_live .ff-bg,
+.stage-match_review .ff-bg { background: transparent !important; }

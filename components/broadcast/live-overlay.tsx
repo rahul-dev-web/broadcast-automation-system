@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 import { createBroadcastClient } from "@/lib/supabase/client";
 import { DEFAULT_THEME_CONFIG, normalizeTheme, themeCssVariables, type BroadcastThemeConfig, type BroadcastStage as ThemeStage } from "@/lib/broadcast-theme";
+import { designCssVariables, normalizeDesign, type BroadcastDesignConfig } from "@/lib/broadcast-design";
 import type { BroadcastStage } from "@/lib/types/tournament";
 
 interface OverlayPlayer { id: string; slot: number; displayName: string; inGameName: string; substitute: boolean; }
@@ -233,13 +234,15 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const [hydrated, setHydrated] = useState(false);
   const [data, setData] = useState<OverlayData>({ tournamentName: "Broadcast", totalMatches: 1, teams: [], scores: [], overall: [], loading: true, error: "" });
   const [theme, setTheme] = useState<BroadcastThemeConfig>(DEFAULT_THEME_CONFIG);
+  const [designConfig, setDesignConfig] = useState<BroadcastDesignConfig | null>(null);
+  const [designStyle, setDesignStyle] = useState("MINIMAL");
   const lastSessionUpdateRef = useRef("");
 
   const loadOverlayData = useCallback(async (matchNumber: number) => {
     setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
     try {
       const [tournamentResult, teamsResult, matchResult] = await Promise.all([
-        overlaySupabase.from("tournaments").select("name, total_matches, theme_id").eq("id", tournamentId).single(),
+        overlaySupabase.from("tournaments").select("name, total_matches, theme_id, design_id").eq("id", tournamentId).single(),
         overlaySupabase.from("teams").select("id, team_number, team_name, team_prefix, logo_url").eq("tournament_id", tournamentId).eq("is_active", true).order("team_number"),
         overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).eq("match_number", matchNumber).maybeSingle(),
       ]);
@@ -247,13 +250,32 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
       if (teamsResult.error) throw teamsResult.error;
       if (matchResult.error) throw matchResult.error;
 
-      if (tournamentResult.data?.theme_id) {
+      let resolvedThemeId = tournamentResult.data?.theme_id ?? null;
+      if (tournamentResult.data?.design_id) {
+        const designResult = await overlaySupabase
+          .from("broadcast_designs")
+          .select("config,theme_id")
+          .eq("id", tournamentResult.data.design_id)
+          .maybeSingle();
+        if (!designResult.error && designResult.data?.config) {
+          const nextDesign = normalizeDesign(designResult.data.config as Partial<BroadcastDesignConfig>);
+          setDesignConfig(nextDesign);
+          setDesignStyle(nextDesign.layout.style);
+          resolvedThemeId = designResult.data.theme_id ?? resolvedThemeId;
+        }
+      } else {
+        setDesignConfig(null);
+        setDesignStyle("MINIMAL");
+      }
+
+      if (resolvedThemeId) {
         const themeResult = await overlaySupabase
           .from("broadcast_themes")
           .select("config")
-          .eq("id", tournamentResult.data.theme_id)
+          .eq("id", resolvedThemeId)
           .maybeSingle();
         if (!themeResult.error && themeResult.data?.config) setTheme(normalizeTheme(themeResult.data.config as Partial<BroadcastThemeConfig>));
+        else setTheme(DEFAULT_THEME_CONFIG);
       } else {
         setTheme(DEFAULT_THEME_CONFIG);
       }
@@ -392,7 +414,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
 
   return (
-    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()}`} style={themeCssVariables(theme, stage as ThemeStage)}>
+    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} design-${designStyle.toLowerCase()}`} style={{ ...themeCssVariables(theme, stage as ThemeStage), ...designCssVariables(designConfig) }}>
       <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
       <div className="ff-bg" />
       <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} theme={theme} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
