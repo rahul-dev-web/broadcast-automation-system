@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { getBroadcastChannel, type BroadcastStatePayload } from "@/lib/realtime/broadcast";
 import { createBroadcastClient } from "@/lib/supabase/client";
-import { DEFAULT_THEME_CONFIG, normalizeTheme, themeCssVariables, type BroadcastThemeConfig, type BroadcastStage as ThemeStage } from "@/lib/broadcast-theme";
 import { designCssVariables, normalizeDesign, type BroadcastDesignConfig } from "@/lib/broadcast-design";
 import type { BroadcastStage } from "@/lib/types/tournament";
 
@@ -50,11 +49,11 @@ function TeamLogo({ team }: { team: OverlayTeam }) {
     : <span className="ff-team-logo ff-team-logo-fallback">{(team.prefix || `T${team.number}`).slice(0, 3)}</span>;
 }
 
-function BroadcastBrand({ tournamentName, theme, logoUrl }: { tournamentName: string; theme: BroadcastThemeConfig; logoUrl?: string }) {
+function BroadcastBrand({ tournamentName, logoUrl }: { tournamentName: string; logoUrl?: string }) {
   return (
     <div className="ff-brand">
-      {logoUrl ? <img src={logoUrl} alt="" className="ff-brand-mark ff-design-logo" /> : <span className="ff-brand-mark">{theme.branding.mark}</span>}
-      <div><strong>{tournamentName || "TOURNAMENT"}</strong><small>{theme.branding.label}</small></div>
+      {logoUrl ? <img src={logoUrl} alt="" className="ff-brand-mark ff-design-logo" /> : <span className="ff-brand-mark">BA</span>}
+      <div><strong>{tournamentName || "TOURNAMENT"}</strong><small>OFFICIAL TOURNAMENT BROADCAST</small></div>
     </div>
   );
 }
@@ -234,7 +233,6 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const [connection, setConnection] = useState("CONNECTING");
   const [hydrated, setHydrated] = useState(false);
   const [data, setData] = useState<OverlayData>({ tournamentName: "Broadcast", totalMatches: 1, teams: [], scores: [], overall: [], loading: true, error: "" });
-  const [theme, setTheme] = useState<BroadcastThemeConfig>(DEFAULT_THEME_CONFIG);
   const [designConfig, setDesignConfig] = useState<BroadcastDesignConfig | null>(null);
   const [designStyle, setDesignStyle] = useState("MINIMAL");
   const [designAssets, setDesignAssets] = useState<DesignRuntimeAsset[]>([]);
@@ -244,7 +242,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
     try {
       const [tournamentResult, teamsResult, matchResult] = await Promise.all([
-        overlaySupabase.from("tournaments").select("name, total_matches, theme_id, design_id").eq("id", tournamentId).single(),
+        overlaySupabase.from("tournaments").select("name, total_matches, design_id").eq("id", tournamentId).single(),
         overlaySupabase.from("teams").select("id, team_number, team_name, team_prefix, logo_url").eq("tournament_id", tournamentId).eq("is_active", true).order("team_number"),
         overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).eq("match_number", matchNumber).maybeSingle(),
       ]);
@@ -252,18 +250,16 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
       if (teamsResult.error) throw teamsResult.error;
       if (matchResult.error) throw matchResult.error;
 
-      let resolvedThemeId = tournamentResult.data?.theme_id ?? null;
       if (tournamentResult.data?.design_id) {
         const designResult = await overlaySupabase
           .from("broadcast_designs")
-          .select("config,theme_id")
+          .select("config")
           .eq("id", tournamentResult.data.design_id)
           .maybeSingle();
         if (!designResult.error && designResult.data?.config) {
           const nextDesign = normalizeDesign(designResult.data.config as Partial<BroadcastDesignConfig>);
           setDesignConfig(nextDesign);
           setDesignStyle(nextDesign.layout.style);
-          resolvedThemeId = designResult.data.theme_id ?? resolvedThemeId;
 
           const assetResult = await overlaySupabase
             .from("broadcast_design_assets")
@@ -287,17 +283,6 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         setDesignAssets([]);
       }
 
-      if (resolvedThemeId) {
-        const themeResult = await overlaySupabase
-          .from("broadcast_themes")
-          .select("config")
-          .eq("id", resolvedThemeId)
-          .maybeSingle();
-        if (!themeResult.error && themeResult.data?.config) setTheme(normalizeTheme(themeResult.data.config as Partial<BroadcastThemeConfig>));
-        else setTheme(DEFAULT_THEME_CONFIG);
-      } else {
-        setTheme(DEFAULT_THEME_CONFIG);
-      }
 
       const teams = (teamsResult.data ?? []).map(team => ({
         id: team.id, number: team.team_number, name: team.team_name ?? "", prefix: team.team_prefix ?? "", logoUrl: team.logo_url ?? null, players: [],
@@ -445,8 +430,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const designPolicy = designConfig?.stageDefaults[stage];
   const allowBackground = designPolicy?.background !== "TRANSPARENT";
   const runtimeStyle = {
-    ...themeCssVariables(theme, stage as ThemeStage),
-    ...designCssVariables(designConfig),
+    ...designCssVariables(designConfig, stage),
     ...(headingFont ? { "--theme-heading-font": "BroadcastDesignHeading" } : {}),
     ...(bodyFont ? { "--theme-body-font": "BroadcastDesignBody" } : {}),
   } as CSSProperties;
@@ -463,7 +447,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         : backgroundAsset && allowBackground
           ? <img className="ff-bg ff-design-background" src={backgroundAsset.url} alt="" />
           : <div className="ff-bg" />}
-      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} theme={theme} logoUrl={broadcastLogo?.url} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
+      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} logoUrl={broadcastLogo?.url} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
       <div className="ff-stage-mount" key={stage}>
         {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} tournamentName={data.tournamentName} />
           : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
