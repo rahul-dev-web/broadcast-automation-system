@@ -34,7 +34,6 @@ export type BroadcastDesignConfig = {
 export type BroadcastDesignRecord = {
   id: string;
   organization_id: string | null;
-  theme_id: string | null;
   name: string;
   description: string | null;
   design_type: DesignType;
@@ -132,12 +131,71 @@ export function cloneDesignConfig(input?: Partial<BroadcastDesignConfig> | null)
   return structuredClone(normalizeDesign(input));
 }
 
-export function designCssVariables(input?: Partial<BroadcastDesignConfig> | null): CSSProperties {
+export function designCssVariables(
+  input?: Partial<BroadcastDesignConfig> | null,
+  stage: DesignStage = "ROSTER_1",
+): CSSProperties {
   const design = normalizeDesign(input);
+  const palettes: Record<string, {
+    primary: string; secondary: string; accent: string; background: string; panel: string;
+    text: string; muted: string; border: string; radius: string; clip: string; shadow: string;
+    heading: string; body: string; weight: number; tracking: string;
+  }> = {
+    ANGULAR: {
+      primary: "#7c5cff", secondary: "#16d9ff", accent: "#ffffff", background: "#070a12",
+      panel: "rgba(10,14,24,.90)", text: "#f7f8ff", muted: "#9aa5bc", border: "rgba(124,92,255,.34)",
+      radius: "6px", clip: "polygon(0 0,97% 0,100% 16%,100% 100%,3% 100%,0 84%)",
+      shadow: "0 18px 45px rgba(0,0,0,.30)", heading: "Arial, Helvetica, sans-serif",
+      body: "Arial, Helvetica, sans-serif", weight: 900, tracking: ".09em",
+    },
+    CINEMATIC: {
+      primary: "#e2b35b", secondary: "#8f5d32", accent: "#ffe6ad", background: "#0c0910",
+      panel: "rgba(25,16,28,.90)", text: "#fff7e7", muted: "#b4a6b8", border: "rgba(226,179,91,.34)",
+      radius: "4px", clip: "none", shadow: "0 20px 55px rgba(0,0,0,.36)", heading: "Georgia, serif",
+      body: "Arial, Helvetica, sans-serif", weight: 700, tracking: ".12em",
+    },
+    GRID: {
+      primary: "#00d9ff", secondary: "#6366f1", accent: "#e8fbff", background: "#050912",
+      panel: "rgba(7,15,29,.88)", text: "#effbff", muted: "#8fa6bd", border: "rgba(0,217,255,.30)",
+      radius: "2px", clip: "none", shadow: "0 16px 42px rgba(0,0,0,.34)", heading: "Arial, Helvetica, sans-serif",
+      body: "ui-monospace, SFMono-Regular, Consolas, monospace", weight: 800, tracking: ".08em",
+    },
+    MINIMAL: {
+      primary: "#2563eb", secondary: "#14b8a6", accent: "#ffffff", background: "#08111f",
+      panel: "rgba(10,22,39,.84)", text: "#f8fafc", muted: "#94a3b8", border: "rgba(37,99,235,.30)",
+      radius: "12px", clip: "none", shadow: "0 16px 42px rgba(0,0,0,.24)", heading: "Arial, Helvetica, sans-serif",
+      body: "Arial, Helvetica, sans-serif", weight: 800, tracking: ".07em",
+    },
+  };
+  const palette = palettes[design.layout.style] ?? palettes.MINIMAL;
+  const stagePolicy = design.stageDefaults[stage];
+  const stageBackground = stagePolicy?.background === "TRANSPARENT"
+    ? "transparent"
+    : `radial-gradient(circle at 52% 20%, color-mix(in srgb, ${palette.primary} 18%, transparent), transparent 30%), radial-gradient(circle at 12% 88%, color-mix(in srgb, ${palette.secondary} 18%, transparent), transparent 34%), linear-gradient(135deg, ${palette.background} 0%, ${palette.panel} 48%, ${palette.background} 100%)`;
   return {
     "--design-safe-margin": `${design.layout.safeMargin}px`,
     "--design-stage-duration": `${design.animations.stage.durationMs}ms`,
     "--design-entry-duration": `${design.animations.entry.durationMs}ms`,
     "--design-row-duration": `${design.animations.row.durationMs}ms`,
+    "--ff-gold": palette.primary,
+    "--ff-gold-hi": palette.accent,
+    "--ff-gold-deep": palette.secondary,
+    "--ff-paper": palette.text,
+    "--theme-primary": palette.primary,
+    "--theme-secondary": palette.secondary,
+    "--theme-accent": palette.accent,
+    "--theme-background": palette.background,
+    "--theme-panel": palette.panel,
+    "--theme-text": palette.text,
+    "--theme-muted": palette.muted,
+    "--theme-border": palette.border,
+    "--theme-radius": palette.radius,
+    "--theme-clip": palette.clip,
+    "--theme-shadow": palette.shadow,
+    "--theme-heading-font": palette.heading,
+    "--theme-body-font": palette.body,
+    "--theme-heading-weight": String(palette.weight),
+    "--theme-tracking": palette.tracking,
+    "--theme-stage-background": stageBackground,
   } as CSSProperties;
 }
