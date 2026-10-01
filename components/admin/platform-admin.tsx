@@ -140,7 +140,7 @@ export function PlatformAdmin() {
     });
     if (e) setError(e.message);
     else {
-      setMessage(plan === "OCR Automation"
+      setMessage(plan === "Broadcast Automation"
         ? "Added 2 tournaments + 1,000 Cloud OCR Units."
         : "Added 2 tournament credits.");
       void load();
@@ -161,7 +161,7 @@ export function PlatformAdmin() {
       <div>
         <p className="eyebrow">PLATFORM CONTROL</p>
         <h1 className="saas-title">Customer memberships</h1>
-        <p className="saas-muted">Manual billing phase · Starter is live · Pro and Agency remain gated until released.</p>
+        <p className="saas-muted">Manual billing phase · Starter and Pro are active · Agency remains gated until released.</p>
       </div>
       <button className="saas-button" onClick={() => void load()}>{loading ? "Refreshing…" : "Refresh"}</button>
     </div>
@@ -198,8 +198,9 @@ export function PlatformAdmin() {
             <td>{(r.ocrUsed ?? 0).toLocaleString("en-IN")} / {((r.ocrIncluded ?? 0) + (r.ocrAddon ?? 0)).toLocaleString("en-IN")}<div className="saas-muted">included {r.ocrIncluded ?? 0} + add-on {r.ocrAddon ?? 0}</div></td>
             <td>{r.expires_at ? new Date(r.expires_at).toLocaleDateString("en-IN") : "—"}</td>
             <td><div className="saas-actions">
-              <button className="saas-button primary" onClick={() => void activate(r.id, "STARTER")}>{r.activations ? "Renew Starter" : "Activate Starter"}</button>
-              {r.plan && <button className="saas-button" onClick={() => void addCredits(r.id, r.plan)}>+2 tournaments{r.plan === "OCR Automation" ? " +1k OCR" : ""}</button>}
+              <button className="saas-button primary" onClick={() => void activate(r.id, "STARTER")}>{r.plan === "Manual Scoring" ? "Renew Starter" : "Activate Starter"}</button>
+              <button className="saas-button primary" onClick={() => void activate(r.id, "PRO")}>{r.plan === "Broadcast Automation" ? "Renew Pro" : "Activate Pro"}</button>
+              {r.plan && <button className="saas-button" onClick={() => void addCredits(r.id, r.plan)}>+2 tournaments{r.plan === "Broadcast Automation" ? " +1k OCR" : ""}</button>}
               <button className="saas-button" onClick={() => void setStatus(r.id, "PAUSED")}>Pause</button>
             </div></td>
           </tr>)}</tbody>
