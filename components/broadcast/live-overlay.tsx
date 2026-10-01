@@ -14,6 +14,7 @@ interface OverlayScore {
   placement: number | null; killPoints: number; positionPoints: number; totalPoints: number;
   eliminationStatus: "ALIVE" | "ELIMINATED";
 }
+interface DesignRuntimeAsset { slot: string; mimeType: string | null; url: string; }
 interface OverlayData {
   tournamentName: string; totalMatches: number; teams: OverlayTeam[];
   scores: OverlayScore[]; overall: OverlayScore[]; loading: boolean; error: string;
@@ -49,10 +50,10 @@ function TeamLogo({ team }: { team: OverlayTeam }) {
     : <span className="ff-team-logo ff-team-logo-fallback">{(team.prefix || `T${team.number}`).slice(0, 3)}</span>;
 }
 
-function BroadcastBrand({ tournamentName, theme }: { tournamentName: string; theme: BroadcastThemeConfig }) {
+function BroadcastBrand({ tournamentName, theme, logoUrl }: { tournamentName: string; theme: BroadcastThemeConfig; logoUrl?: string }) {
   return (
     <div className="ff-brand">
-      <span className="ff-brand-mark">{theme.branding.mark}</span>
+      {logoUrl ? <img src={logoUrl} alt="" className="ff-brand-mark ff-design-logo" /> : <span className="ff-brand-mark">{theme.branding.mark}</span>}
       <div><strong>{tournamentName || "TOURNAMENT"}</strong><small>{theme.branding.label}</small></div>
     </div>
   );
@@ -236,6 +237,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const [theme, setTheme] = useState<BroadcastThemeConfig>(DEFAULT_THEME_CONFIG);
   const [designConfig, setDesignConfig] = useState<BroadcastDesignConfig | null>(null);
   const [designStyle, setDesignStyle] = useState("MINIMAL");
+  const [designAssets, setDesignAssets] = useState<DesignRuntimeAsset[]>([]);
   const lastSessionUpdateRef = useRef("");
 
   const loadOverlayData = useCallback(async (matchNumber: number) => {
@@ -262,10 +264,27 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
           setDesignConfig(nextDesign);
           setDesignStyle(nextDesign.layout.style);
           resolvedThemeId = designResult.data.theme_id ?? resolvedThemeId;
+
+          const assetResult = await overlaySupabase
+            .from("broadcast_design_assets")
+            .select("slot,storage_path,mime_type,config")
+            .eq("design_id", tournamentResult.data.design_id);
+          if (!assetResult.error) {
+            setDesignAssets((assetResult.data ?? []).map((asset: { slot: string; storage_path: string; mime_type: string | null; config: Record<string, unknown> | null }) => ({
+              slot: asset.slot,
+              mimeType: asset.mime_type,
+              url: typeof asset.config?.publicUrl === "string"
+                ? asset.config.publicUrl
+                : overlaySupabase.storage.from("broadcast-assets").getPublicUrl(asset.storage_path).data.publicUrl,
+            })));
+          } else {
+            setDesignAssets([]);
+          }
         }
       } else {
         setDesignConfig(null);
         setDesignStyle("MINIMAL");
+        setDesignAssets([]);
       }
 
       if (resolvedThemeId) {
@@ -413,11 +432,38 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="ff-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
 
+  const backgroundSlot = stage === "ROSTER_1" || stage === "ROSTER_2" ? "background_roster"
+    : stage === "ROOM" ? "background_room"
+    : stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "background_live"
+    : stage === "MATCH_VERIFIED" || stage === "MATCH_PT" ? "background_result"
+    : stage === "OVERALL" ? "background_overall"
+    : "outro_thank_you";
+  const backgroundAsset = designAssets.find(asset => asset.slot === backgroundSlot);
+  const broadcastLogo = designAssets.find(asset => asset.slot === "logo_broadcast");
+  const headingFont = designAssets.find(asset => asset.slot === "font_heading" || asset.slot === "font_primary");
+  const bodyFont = designAssets.find(asset => asset.slot === "font_body" || asset.slot === "font_primary");
+  const designPolicy = designConfig?.stageDefaults[stage];
+  const allowBackground = designPolicy?.background !== "TRANSPARENT";
+  const runtimeStyle = {
+    ...themeCssVariables(theme, stage as ThemeStage),
+    ...designCssVariables(designConfig),
+    ...(headingFont ? { "--theme-heading-font": "BroadcastDesignHeading" } : {}),
+    ...(bodyFont ? { "--theme-body-font": "BroadcastDesignBody" } : {}),
+  } as CSSProperties;
+
   return (
-    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} design-${designStyle.toLowerCase()}`} style={{ ...themeCssVariables(theme, stage as ThemeStage), ...designCssVariables(designConfig) }}>
+    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} design-${designStyle.toLowerCase()}`} style={runtimeStyle}>
+      {(headingFont || bodyFont) && <style>{`
+        @font-face{font-family:BroadcastDesignHeading;src:url("${headingFont?.url ?? bodyFont?.url}") format("woff2");font-display:swap;}
+        @font-face{font-family:BroadcastDesignBody;src:url("${bodyFont?.url ?? headingFont?.url}") format("woff2");font-display:swap;}
+      `}</style>}
       <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
-      <div className="ff-bg" />
-      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} theme={theme} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
+      {backgroundAsset && allowBackground && backgroundAsset.mimeType?.startsWith("video/")
+        ? <video className="ff-bg ff-design-background" src={backgroundAsset.url} autoPlay muted loop playsInline />
+        : backgroundAsset && allowBackground
+          ? <img className="ff-bg ff-design-background" src={backgroundAsset.url} alt="" />
+          : <div className="ff-bg" />}
+      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} theme={theme} logoUrl={broadcastLogo?.url} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
       <div className="ff-stage-mount" key={stage}>
         {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} tournamentName={data.tournamentName} />
           : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />

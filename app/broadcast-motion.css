@@ -572,3 +572,6 @@
    transparent unless the saved design policy says otherwise. */
 .stage-match_live .ff-bg,
 .stage-match_review .ff-bg { background: transparent !important; }
+
+.ff-design-background{position:absolute!important;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;pointer-events:none}
+.ff-design-logo{object-fit:contain;padding:4px;background:rgba(0,0,0,.18)}
