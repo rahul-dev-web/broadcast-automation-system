@@ -468,7 +468,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         @font-face{font-family:BroadcastDesignHeading;src:url("${headingFont?.url ?? bodyFont?.url}") format("woff2");font-display:swap;}
         @font-face{font-family:BroadcastDesignBody;src:url("${bodyFont?.url ?? headingFont?.url}") format("woff2");font-display:swap;}
       `}</style>}
-      <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
+      {!hasCustomIntro && <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>}
 
       {hasCustomIntro ? (
         <div className="ff-starting-intro-mount">
