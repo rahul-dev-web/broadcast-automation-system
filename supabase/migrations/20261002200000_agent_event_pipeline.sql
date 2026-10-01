@@ -8,6 +8,7 @@ alter table public.scoring_events
 create unique index if not exists scoring_events_match_fingerprint_uidx on public.scoring_events(match_id,fingerprint) where fingerprint is not null;
 create index if not exists idx_scoring_events_match_status on public.scoring_events(match_id,status,created_at desc);
 create index if not exists idx_scoring_events_match_source on public.scoring_events(match_id,source,created_at desc);
+create index if not exists idx_scoring_events_validated_by on public.scoring_events(validated_by);
 create or replace function public.approve_detected_scoring_event(p_event_id uuid) returns public.scoring_events language plpgsql security definer set search_path='' as $function$
 declare event_row public.scoring_events;
 begin
