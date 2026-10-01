@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 import cv2
 import mss
+from PIL import Image, ImageTk
 
 from .api import Api
 from .config import load_config,AgentConfig,Capture
@@ -47,15 +48,12 @@ class AgentWindow:
 
     def show_frame(self,frame):
         small=cv2.resize(frame,(960,540))
-        ok,encoded=cv2.imencode(".ppm",small)
-        if not ok:return
-        self.root.after(0,lambda data=encoded.tobytes():self._show(data))
+        image=Image.fromarray(cv2.cvtColor(small,cv2.COLOR_BGR2RGB))
+        self.root.after(0,lambda img=image:self._show(img))
 
-    def _show(self,data):
-        try:
-            self.photo=tk.PhotoImage(data=data,format="PPM")
-            self.preview.configure(image=self.photo,text="")
-        except tk.TclError: pass
+    def _show(self,image):
+        self.photo=ImageTk.PhotoImage(image=image)
+        self.preview.configure(image=self.photo,text="")
 
     def close(self):
         self.stop_capture();self.root.destroy()
