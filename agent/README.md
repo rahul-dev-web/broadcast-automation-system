@@ -1,24 +1,29 @@
 # ArenaCast Local Agent
 
-Windows-side Pro capture/event engine.
+Windows desktop capture and event engine for ArenaCast Pro.
 
-- 15 FPS display capture with MSS/OpenCV
-- ROI change gating
-- optional PaddleOCR adapter
-- player-change stabilization after two matching observations
+## Current milestone
+
+- Tkinter Windows UI
+- display selection
+- target FPS control
+- live capture preview
+- OpenCV ROI change gates
+- optional PaddleOCR
+- player-change stabilization
 - kill-feed deduplication
-- HTTPS ingestion using a Supabase Auth user token
-- all detections enter the backend as DETECTED, never OFFICIAL
+- authenticated Supabase event ingestion
+- DETECTED events only; operator approval remains authoritative
 
-Use Python 3.11 for the OCR runtime. The OCR dependency is intentionally optional for the capture proof.
+Use Python 3.11 for the OCR runtime. Capture mode can run without PaddleOCR.
 
 Setup:
 1. py -3.11 -m venv .venv
 2. .\\.venv\\Scripts\\Activate.ps1
 3. pip install -r requirements.txt
-4. Copy config.example.json to config.json and fill the user access token, tournament and match IDs.
+4. Copy config.example.json to config.json and fill the Supabase URL, user access token, tournament ID and match ID.
 5. python -m arenacast_agent.main
 
-Never store service-role, secret API keys or Google Vision credentials in the agent.
+Never store service-role, secret API keys or Google Vision credentials in the Agent.
 
-The backend maps OCR IGN values against players.in_game_name and writes operational player state without granting scoring points. Kill events remain detected until operator validation.
+The exact Free Fire kill-feed grammar is intentionally profile-driven. The generic engine detects candidate text changes but does not assume an arbitrary OCR string is a valid kill without the database mapping and server validation.
