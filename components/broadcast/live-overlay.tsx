@@ -429,6 +429,10 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const bodyFont = designAssets.find(asset => asset.slot === "font_body" || asset.slot === "font_primary");
   const designPolicy = designConfig?.stageDefaults[stage];
   const allowBackground = designPolicy?.background !== "TRANSPARENT";
+  const designClass = designStyle === "ANGULAR" ? "design-angular-arena"
+    : designStyle === "CINEMATIC" ? "design-championship-cinematic"
+    : designStyle === "GRID" ? "design-future-grid"
+    : "design-minimal";
   const runtimeStyle = {
     ...designCssVariables(designConfig, stage),
     ...(headingFont ? { "--theme-heading-font": "BroadcastDesignHeading" } : {}),
@@ -436,7 +440,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   } as CSSProperties;
 
   return (
-    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} design-${designStyle.toLowerCase()}`} style={runtimeStyle}>
+    <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} ${designClass}`} style={runtimeStyle}>
       {(headingFont || bodyFont) && <style>{`
         @font-face{font-family:BroadcastDesignHeading;src:url("${headingFont?.url ?? bodyFont?.url}") format("woff2");font-display:swap;}
         @font-face{font-family:BroadcastDesignBody;src:url("${bodyFont?.url ?? headingFont?.url}") format("woff2");font-display:swap;}
