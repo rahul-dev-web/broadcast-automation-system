@@ -4,6 +4,8 @@ import { FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
 import { createTournament } from "@/lib/tournament-repository";
+import { supabase } from "@/lib/supabase/client";
+import type { BroadcastDesignRecord } from "@/lib/broadcast-design";
 
 const MAX_TEAMS = 12;
 const PLAYER_SLOTS = 5;
@@ -31,6 +33,9 @@ export function TournamentBuilder() {
   const [totalMatchesInput, setTotalMatchesInput] = useState("6");
   const [presentationMode, setPresentationMode] = useState<PresentationMode>("PER_MATCH");
   const [customMatches, setCustomMatches] = useState<number[]>([]);
+  const [systemDesigns, setSystemDesigns] = useState<BroadcastDesignRecord[]>([]);
+  const [designId, setDesignId] = useState("");
+  const [designsLoading, setDesignsLoading] = useState(true);
   const [teams, setTeams] = useState<TeamDraft[]>(
     Array.from({ length: MAX_TEAMS }, (_, index) => createEmptyTeam(index + 1)),
   );
@@ -38,6 +43,29 @@ export function TournamentBuilder() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [createdTournamentId, setCreatedTournamentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDesignPackages() {
+      const { data, error } = await supabase
+        .from("broadcast_designs")
+        .select("id,organization_id,name,description,design_type,preset_id,version,config")
+        .eq("design_type", "SYSTEM")
+        .eq("is_active", true)
+        .order("preset_id");
+      if (cancelled) return;
+      if (error) {
+        setError(error.message);
+      } else {
+        const packages = (data ?? []) as BroadcastDesignRecord[];
+        setSystemDesigns(packages);
+        setDesignId(current => current || packages[0]?.id || "");
+      }
+      setDesignsLoading(false);
+    }
+    void loadDesignPackages();
+    return () => { cancelled = true; };
+  }, []);
 
   const modeDescription = useMemo(() => {
     if (presentationMode === "PER_MATCH") {
@@ -102,6 +130,7 @@ export function TournamentBuilder() {
         totalMatches,
         presentationMode,
         customMatches,
+        designId,
         teams,
       };
       const tournamentId = await createTournament(draft);
@@ -244,6 +273,37 @@ export function TournamentBuilder() {
         <div className="section-title">
           <div>
             <p className="eyebrow">02</p>
+            <h2>Broadcast design package</h2>
+          </div>
+          <span className="status-pill">4 SYSTEM PACKAGES</span>
+        </div>
+        <p className="muted">
+          Select one of the four built-in broadcast packages for this tournament. Custom design packages are created separately in Broadcast / Design Studio and can be assigned there.
+        </p>
+        {designsLoading ? (
+          <div className="readonly-control">Loading system design packages…</div>
+        ) : (
+          <div className="mode-grid">
+            {systemDesigns.map((design) => (
+              <button
+                className={designId === design.id ? "mode-card active" : "mode-card"}
+                key={design.id}
+                type="button"
+                onClick={() => setDesignId(design.id)}
+              >
+                <strong>{design.name}</strong>
+                <span>{design.config.layout.style} · {design.config.layout.density} · v{design.version}</span>
+                <span>{design.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">03</p>
             <h2>Team roster setup</h2>
           </div>
           <span className="muted">12 fixed team slots</span>
@@ -333,7 +393,7 @@ export function TournamentBuilder() {
 
       <section className="panel scoring-panel">
         <div>
-          <p className="eyebrow">03</p>
+          <p className="eyebrow">04</p>
           <h2>Locked scoring rules</h2>
           <p className="muted">The same scoring engine will be used by Manual and OCR inputs.</p>
         </div>
