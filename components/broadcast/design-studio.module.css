@@ -69,3 +69,66 @@
 .assetMeta .ghost-button{margin-top:7px}
 @media(max-width:1050px){.layout{grid-template-columns:1fr}.library{position:static;max-height:none}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.header{flex-direction:column}.headerActions{justify-content:flex-start}.assetGrid,.stagePolicyGrid{grid-template-columns:1fr}.animationRow{grid-template-columns:1fr 1fr}.animationRow strong{grid-column:1/-1}.previewNote{display:block}.previewNote span{display:block;text-align:left;margin-top:4px}}
+
+
+/* Real renderer preview: render a 1920x1080 broadcast canvas and scale it
+   into the responsive studio viewport. This keeps vw/vh-based production CSS
+   visually consistent with the OBS/browser-source renderer. */
+.previewViewport{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  overflow:hidden;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.09);
+  background:#05070b;
+  isolation:isolate;
+}
+.previewCanvas{
+  position:absolute;
+  left:0;
+  top:0;
+  width:1920px;
+  height:1080px;
+  transform-origin:top left;
+}
+.previewCanvas .ff-broadcast-root{
+  width:1920px !important;
+  min-width:1920px !important;
+  height:1080px !important;
+  min-height:1080px !important;
+  max-height:1080px !important;
+  overflow:hidden !important;
+  position:relative !important;
+}
+.previewCanvas .ff-stage,
+.previewCanvas .ff-stage-mount{
+  width:1920px !important;
+  min-width:1920px !important;
+  height:1080px !important;
+  min-height:1080px !important;
+  max-height:1080px !important;
+}
+.previewCanvas .ff-design-background{
+  width:1920px !important;
+  height:1080px !important;
+}
+.previewCanvas .ff-global-header{
+  z-index:90;
+}
+.previewCanvas .ff-global-footer{
+  z-index:90;
+}
+.transparencyGrid{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background-color:#111722;
+  background-image:
+    linear-gradient(45deg,rgba(255,255,255,.045) 25%,transparent 25%),
+    linear-gradient(-45deg,rgba(255,255,255,.045) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,rgba(255,255,255,.045) 75%),
+    linear-gradient(-45deg,transparent 75%,rgba(255,255,255,.045) 75%);
+  background-size:32px 32px;
+  background-position:0 0,0 16px,16px -16px,-16px 0;
+}
