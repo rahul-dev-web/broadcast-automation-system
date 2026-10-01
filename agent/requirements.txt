@@ -1,0 +1,6 @@
+mss==10.1.0
+numpy==2.2.6
+opencv-python==4.12.0.88
+requests==2.32.5
+pyinstaller==6.16.0
+# Install a compatible PaddlePaddle build, then paddleocr[doc-parser] if OCR is enabled.
