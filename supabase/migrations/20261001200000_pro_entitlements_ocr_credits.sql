@@ -224,11 +224,9 @@ begin
     raise exception 'Platform admin access required';
   end if;
 
-  select s.*, p.addon_tournaments as plan_addon_tournaments,
-         p.addon_ocr_units as plan_addon_ocr_units
+  select s.*
   into sub_row
   from public.subscriptions s
-  join public.subscription_plans p on p.id = s.plan_id
   where s.organization_id = p_organization_id
   for update;
 
