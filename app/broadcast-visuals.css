@@ -432,6 +432,8 @@
   --ff-paper: var(--theme-text, #fff7e7);
   --ff-muted: var(--theme-muted, #b4a6b8);
   font-family: var(--theme-body-font, Arial, Helvetica, sans-serif) !important;
+  font-weight: var(--theme-body-weight, 500);
+  letter-spacing: var(--theme-tracking, .07em);
   background: transparent !important;
 }
 .ff-broadcast-root .ff-bg {
