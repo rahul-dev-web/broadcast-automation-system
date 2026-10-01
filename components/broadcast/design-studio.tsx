@@ -127,6 +127,7 @@ export function BroadcastDesignStudio() {
   const customDesigns = useMemo(() => designs.filter(item => item.design_type === "CUSTOM"), [designs]);
   const selectedAssets = useMemo(() => assets.filter(item => item.design_id === selectedId), [assets, selectedId]);
   const stageAsset = selectedAssets.find(item => item.slot === stageBackgroundSlot(stage));
+  const stageAssetUrl = typeof stageAsset?.config?.publicUrl === "string" ? stageAsset.config.publicUrl : null;
   const currentStagePolicy = draft.stageDefaults[stage] ?? { background: "FULL", panel: "CLEAN" };
 
   function selectDesign(design: BroadcastDesignRecord, tournamentRows = tournaments, assetRows = assets) {
@@ -402,10 +403,10 @@ export function BroadcastDesignStudio() {
               <div className={styles.stageTabs}>{DESIGN_STAGES.map(item => <button key={item} className={stage === item ? styles.selectedTab : ""} onClick={() => setStage(item)}>{stageLabels[item]}</button>)}</div>
             </div>
             <div className={styles.preview}>
-              {stageAsset?.config?.publicUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("video/") && (
-                <video className={styles.previewMedia} src={String(stageAsset.config.publicUrl)} autoPlay muted loop playsInline />
+              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("video/") && (
+                <video className={styles.previewMedia} src={stageAssetUrl} autoPlay muted loop playsInline />
               )}
-              {stageAsset?.config?.publicUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("image/") && (
+              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("image/") && (
                 <img className={styles.previewMedia} src={String(stageAsset.config.publicUrl)} alt="" />
               )}
               <div className={styles.previewShade} />

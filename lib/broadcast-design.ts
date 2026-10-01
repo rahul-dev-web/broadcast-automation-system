@@ -112,7 +112,7 @@ export const DEFAULT_DESIGN_CONFIG: BroadcastDesignConfig = {
 
 export function normalizeDesign(input?: Partial<BroadcastDesignConfig> | null): BroadcastDesignConfig {
   const source = input ?? {};
-  const animations = source.animations ?? {};
+  const animations: Partial<BroadcastDesignConfig["animations"]> = source.animations ?? {};
   return {
     ...DEFAULT_DESIGN_CONFIG,
     ...source,
