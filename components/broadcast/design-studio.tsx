@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
   ANIMATION_TYPES,
@@ -77,13 +77,27 @@ function DesignPreview({
   logoUrl: string | null;
   name: string;
 }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const updateScale = () => setScale(Math.max(0.15, Math.min(1, element.clientWidth / 1920)));
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   const policy = design.stageDefaults[stage] ?? { background: "FULL", panel: "CLEAN" };
   const isTransparent = policy.background === "TRANSPARENT";
   const vars = designCssVariables(design, stage);
   const rootClass = `ff-broadcast-root stage-${stage.toLowerCase()} ${previewDesignClass(design.layout.style)}`;
   return (
-    <div className={styles.previewViewport}>
-      <div className={rootClass} style={vars}>
+    <div className={styles.previewViewport} ref={viewportRef}>
+      <div className={styles.previewCanvas} style={{ transform: `scale(${scale})` }}>
+        <div className={rootClass} style={vars}>
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("video/") && <video className="ff-design-background" src={backgroundUrl} autoPlay muted loop playsInline />}
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("image/") && <img className="ff-design-background" src={backgroundUrl} alt="" />}
         {isTransparent && <div className={styles.transparencyGrid} />}
@@ -119,6 +133,7 @@ function DesignPreview({
         {stage === "OVERALL" && <section className="ff-stage ff-overall-stage"><div className="ff-overall-title"><span className="ff-overline">TOURNAMENT LEADERBOARD</span><h1>OVERALL <em>STANDINGS</em></h1><b>AFTER MATCH 01</b></div><div className="ff-overall-table">{previewTeams.slice(0,7).map((team,i)=><div className={`ff-overall-row ${i<3 ? "podium-row" : ""}`} key={team.number}><b>{i+1}</b><strong>{team.prefix}</strong><span>12 KILLS</span><i>+{32-i*3} PTS</i><em>{32-i*3}</em></div>)}</div></section>}
         {stage === "THANK_YOU" && <section className="ff-stage ff-simple-stage"><span>THANK YOU FOR WATCHING</span><h1>SEE YOU<br />NEXT MATCH</h1><p>{name || "TOURNAMENT"} · OFFICIAL BROADCAST</p></section>}
         <div className="ff-global-footer"><span>DESIGN PREVIEW</span><i>•</i><span>{stageLabel.toUpperCase()}</span><i>•</i><span>{design.layout.style}</span></div>
+        </div>
       </div>
     </div>
   );
