@@ -258,99 +258,151 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
 
   const loadOverlayData = useCallback(async (matchNumber: number) => {
     setData(current => ({ ...current, loading: current.teams.length === 0, error: "" }));
+
     try {
-      const [tournamentResult, teamsResult, matchResult] = await Promise.all([
-        overlaySupabase.from("tournaments").select("name, total_matches, design_id").eq("id", tournamentId).single(),
-        overlaySupabase.from("teams").select("id, team_number, team_name, team_prefix, logo_url").eq("tournament_id", tournamentId).eq("is_active", true).order("team_number"),
-        overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).eq("match_number", matchNumber).maybeSingle(),
-      ]);
-      if (tournamentResult.error) throw tournamentResult.error;
-      if (teamsResult.error) throw teamsResult.error;
-      if (matchResult.error) throw matchResult.error;
+      // OBS is an unauthenticated public client. Validate the per-tournament
+      // broadcast token inside Postgres and return one complete read-only snapshot.
+      const { data: snapshot, error: snapshotError } = await overlaySupabase.rpc(
+        "get_public_broadcast_snapshot",
+        {
+          p_tournament_id: tournamentId,
+          p_token: token,
+          p_match_number: matchNumber,
+        },
+      );
 
-      if (tournamentResult.data?.design_id) {
-        const designResult = await overlaySupabase
-          .from("broadcast_designs")
-          .select("config")
-          .eq("id", tournamentResult.data.design_id)
-          .maybeSingle();
-        if (!designResult.error && designResult.data?.config) {
-          const nextDesign = normalizeDesign(designResult.data.config as Partial<BroadcastDesignConfig>);
-          setDesignConfig(nextDesign);
-          setDesignStyle(nextDesign.layout.style);
+      if (snapshotError) throw snapshotError;
+      if (!snapshot || typeof snapshot !== "object") {
+        throw new Error("Broadcast snapshot was empty.");
+      }
 
-          const assetResult = await overlaySupabase
-            .from("broadcast_design_assets")
-            .select("slot,storage_path,mime_type,config")
-            .eq("design_id", tournamentResult.data.design_id);
-          if (!assetResult.error) {
-            setDesignAssets((assetResult.data ?? []).map((asset: { slot: string; storage_path: string; mime_type: string | null; config: Record<string, unknown> | null }) => ({
-              slot: asset.slot,
-              mimeType: asset.mime_type,
-              url: typeof asset.config?.publicUrl === "string"
-                ? asset.config.publicUrl
-                : overlaySupabase.storage.from("broadcast-assets").getPublicUrl(asset.storage_path).data.publicUrl,
-            })));
-          } else {
-            setDesignAssets([]);
-          }
-        }
+      const raw = snapshot as Record<string, unknown>;
+      const tournament = (raw.tournament ?? {}) as Record<string, unknown>;
+      const session = (raw.session ?? {}) as Record<string, unknown>;
+      const rawTeams = Array.isArray(raw.teams) ? raw.teams : [];
+      const teams = rawTeams.map((teamValue) => {
+        const team = (teamValue ?? {}) as Record<string, unknown>;
+        const rawPlayers = Array.isArray(team.players) ? team.players : [];
+        return {
+          id: asText(team.id),
+          number: asNumber(team.team_number),
+          name: asText(team.team_name),
+          prefix: asText(team.team_prefix),
+          logoUrl: typeof team.logo_url === "string" ? team.logo_url : null,
+          players: rawPlayers.map((playerValue) => {
+            const player = (playerValue ?? {}) as Record<string, unknown>;
+            return {
+              id: asText(player.id),
+              slot: asNumber(player.slot_number),
+              displayName: asText(player.display_name),
+              inGameName: asText(player.in_game_name),
+              substitute: Boolean(player.is_substitute),
+            };
+          }),
+        };
+      }) as OverlayTeam[];
+
+      const teamById = new Map(teams.map(team => [team.id, team]));
+      const rawScores = Array.isArray(raw.scores) ? raw.scores : [];
+      const scores = rawScores.map((scoreValue) => {
+        const row = (scoreValue ?? {}) as Record<string, unknown>;
+        const team = teamById.get(asText(row.team_id));
+        return {
+          teamId: asText(row.team_id),
+          teamNumber: team?.number ?? 0,
+          teamName: team?.name ?? "",
+          prefix: team?.prefix || `T${team?.number ?? "?"}`,
+          kills: asNumber(row.kills),
+          placement: row.placement == null ? null : asNumber(row.placement),
+          killPoints: asNumber(row.kill_points),
+          positionPoints: asNumber(row.position_points),
+          totalPoints: asNumber(row.total_points),
+          eliminationStatus: row.elimination_status === "ELIMINATED" ? "ELIMINATED" : "ALIVE",
+        };
+      }) as OverlayScore[];
+
+      const rawOverall = Array.isArray(raw.overall) ? raw.overall : [];
+      const overall = rawOverall.map((rowValue) => {
+        const row = (rowValue ?? {}) as Record<string, unknown>;
+        const teamNumber = asNumber(row.team_number);
+        return {
+          teamId: asText(row.team_id),
+          teamNumber,
+          teamName: asText(row.team_name),
+          prefix: asText(row.team_prefix) || `T${teamNumber || "?"}`,
+          kills: asNumber(row.kills),
+          placement: null,
+          killPoints: 0,
+          positionPoints: 0,
+          totalPoints: asNumber(row.total_points),
+          eliminationStatus: "ALIVE",
+        };
+      }) as OverlayScore[];
+
+      const design = (raw.design ?? {}) as Record<string, unknown>;
+      const designConfigRaw = design.config;
+      if (designConfigRaw && typeof designConfigRaw === "object") {
+        const nextDesign = normalizeDesign(designConfigRaw as Partial<BroadcastDesignConfig>);
+        setDesignConfig(nextDesign);
+        setDesignStyle(nextDesign.layout.style);
       } else {
         setDesignConfig(null);
         setDesignStyle("MINIMAL");
-        setDesignAssets([]);
       }
 
+      const rawAssets = Array.isArray(design.assets) ? design.assets : [];
+      setDesignAssets(rawAssets.map((assetValue) => {
+        const asset = (assetValue ?? {}) as Record<string, unknown>;
+        const config = asset.config && typeof asset.config === "object"
+          ? asset.config as Record<string, unknown>
+          : null;
+        const publicUrl = typeof config?.publicUrl === "string"
+          ? config.publicUrl
+          : overlaySupabase.storage.from("broadcast-assets").getPublicUrl(asText(asset.storage_path)).data.publicUrl;
+        return {
+          slot: asText(asset.slot),
+          mimeType: typeof asset.mime_type === "string" ? asset.mime_type : null,
+          url: publicUrl,
+        };
+      }).filter(asset => Boolean(asset.slot && asset.url)));
 
-      const teams = (teamsResult.data ?? []).map(team => ({
-        id: team.id, number: team.team_number, name: team.team_name ?? "", prefix: team.team_prefix ?? "", logoUrl: team.logo_url ?? null, players: [],
-      })) as OverlayTeam[];
-
-      const teamIds = teams.map(team => team.id);
-      if (teamIds.length) {
-        const playersResult = await overlaySupabase.from("players").select("id, team_id, slot_number, display_name, in_game_name, is_substitute").in("team_id", teamIds).order("slot_number");
-        if (playersResult.error) throw playersResult.error;
-        for (const player of playersResult.data ?? []) {
-          const team = teams.find(item => item.id === player.team_id);
-          if (team) team.players.push({ id: player.id, slot: player.slot_number, displayName: player.display_name ?? "", inGameName: player.in_game_name ?? "", substitute: player.is_substitute });
-        }
-      }
-
-      let scores: OverlayScore[] = [];
-      if (matchResult.data?.id) {
-        const scoreResult = await overlaySupabase.from("match_team_state").select("team_id, kills, placement, kill_points, position_points, total_points, elimination_status").eq("match_id", matchResult.data.id);
-        if (scoreResult.error) throw scoreResult.error;
-        scores = (scoreResult.data ?? []).map(row => {
-          const team = teams.find(item => item.id === row.team_id);
-          return {
-            teamId: row.team_id, teamNumber: team?.number ?? 0, teamName: team?.name ?? "", prefix: team?.prefix || `T${team?.number ?? "?"}`,
-            kills: row.kills ?? 0, placement: row.placement, killPoints: row.kill_points ?? 0, positionPoints: row.position_points ?? 0, totalPoints: row.total_points ?? 0, eliminationStatus: row.elimination_status ?? "ALIVE",
-          };
+      const sessionPayload = session.state_payload && typeof session.state_payload === "object"
+        ? session.state_payload as Record<string, unknown>
+        : {};
+      const sessionStage = typeof session.state === "string" ? session.state as BroadcastStage : null;
+      const sessionUpdatedAt = asText(session.updated_at);
+      if (sessionStage && sessionUpdatedAt) {
+        const next = normalizePayload(tournamentId, {
+          ...sessionPayload,
+          stage: sessionStage,
+          matchNumber: asNumber(sessionPayload.matchNumber, matchNumber),
+          updatedAt: sessionUpdatedAt,
         });
-      }
-
-      const matchListResult = await overlaySupabase.from("matches").select("id, match_number").eq("tournament_id", tournamentId).order("match_number");
-      if (matchListResult.error) throw matchListResult.error;
-      let overall = [...scores];
-      if ((matchListResult.data ?? []).length) {
-        const statesResult = await overlaySupabase.from("match_team_state").select("match_id, team_id, kills, total_points").in("match_id", (matchListResult.data ?? []).map(match => match.id));
-        if (statesResult.error) throw statesResult.error;
-        const totals = new Map<string, { kills: number; points: number }>();
-        for (const row of statesResult.data ?? []) {
-          const current = totals.get(row.team_id) ?? { kills: 0, points: 0 };
-          current.kills += row.kills ?? 0; current.points += row.total_points ?? 0; totals.set(row.team_id, current);
+        if (new Date(next.updatedAt).getTime() >= new Date(lastSessionUpdateRef.current || "1970-01-01").getTime()) {
+          lastSessionUpdateRef.current = next.updatedAt;
+          setState(current =>
+            new Date(next.updatedAt).getTime() >= new Date(current.updatedAt).getTime() ? next : current,
+          );
         }
-        overall = teams.map(team => ({
-          teamId: team.id, teamNumber: team.number, teamName: team.name, prefix: team.prefix || `T${team.number}`, kills: totals.get(team.id)?.kills ?? 0,
-          placement: null, killPoints: 0, positionPoints: 0, totalPoints: totals.get(team.id)?.points ?? 0, eliminationStatus: "ALIVE",
-        }));
       }
 
-      setData({ tournamentName: tournamentResult.data.name, totalMatches: tournamentResult.data.total_matches, teams, scores, overall, loading: false, error: "" });
+      setData({
+        tournamentName: asText(tournament.name) || "Broadcast",
+        totalMatches: asNumber(tournament.total_matches, 1),
+        teams,
+        scores,
+        overall,
+        loading: false,
+        error: "",
+      });
     } catch (caught) {
-      setData(current => ({ ...current, loading: false, error: caught instanceof Error ? caught.message : "Overlay data could not be loaded." }));
+      setData(current => ({
+        ...current,
+        loading: false,
+        error: caught instanceof Error ? caught.message : "Broadcast snapshot could not be loaded.",
+      }));
     }
-  }, [tournamentId]);
+  }, [overlaySupabase, token, tournamentId]);
 
   const applyRealtime = useCallback((payload: BroadcastStatePayload) => {
     if (payload.tournamentId !== tournamentId) return;
@@ -363,26 +415,24 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   useEffect(() => {
     let active = true;
     const channel = getBroadcastChannel(tournamentId);
-    channel.on("broadcast", { event: "state" }, message => { if (active) applyRealtime(message.payload as BroadcastStatePayload); });
-    channel.subscribe(status => { if (active) setConnection(status); });
 
-    void (async () => {
-      const { data: session, error } = await overlaySupabase.from("broadcast_sessions").select("state, state_payload, updated_at").eq("tournament_id", tournamentId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (!active) return;
-      if (!error && session) {
-        const payload = { ...((session.state_payload ?? {}) as Record<string, unknown>), stage: session.state, updatedAt: session.updated_at };
-        const next = normalizePayload(tournamentId, payload);
-        lastSessionUpdateRef.current = next.updatedAt;
-        setState(next);
-        await loadOverlayData(next.matchNumber ?? 1);
-      } else {
-        await loadOverlayData(1);
-      }
+    channel.on("broadcast", { event: "state" }, message => {
+      if (active) applyRealtime(message.payload as BroadcastStatePayload);
+    });
+    channel.subscribe(status => {
+      if (active) setConnection(status);
+    });
+
+    void loadOverlayData(state.matchNumber ?? 1).then(() => {
       if (active) setHydrated(true);
-    })();
+    });
 
-    return () => { active = false; void channel.unsubscribe(); };
-  }, [applyRealtime, loadOverlayData, tournamentId]);
+    return () => {
+      active = false;
+      void channel.unsubscribe();
+    };
+  }, [applyRealtime, loadOverlayData, state.matchNumber, tournamentId]);
+
 
   const stage = state.stage;
   const page = asNumber(state.data?.page, stage === "ROSTER_2" ? 2 : 1) === 2 ? 2 : 1;
@@ -391,46 +441,17 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   const isLive = connection === "SUBSCRIBED";
 
   useEffect(() => {
-    if (!hydrated || stage !== "MATCH_LIVE") return;
-
-    // Match kills/eliminations are stored in match_team_state, not broadcast_sessions.
-    // Keep the browser source synced automatically even when no stage event is emitted.
-    const timer = window.setInterval(() => {
-      void loadOverlayData(state.matchNumber ?? 1);
-    }, 800);
-
-    return () => window.clearInterval(timer);
-  }, [hydrated, loadOverlayData, stage, state.matchNumber]);
-
-  useEffect(() => {
     if (!hydrated) return;
 
-    // Realtime is the fast path. This lightweight session poll is the fallback
-    // that keeps the browser source moving even if one broadcast event is missed.
-    const timer = window.setInterval(async () => {
-      try {
-        const { data: session } = await overlaySupabase
-          .from("broadcast_sessions")
-          .select("state, state_payload, updated_at")
-          .eq("tournament_id", tournamentId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!session || session.updated_at === lastSessionUpdateRef.current) return;
-
-        const payload = { ...((session.state_payload ?? {}) as Record<string, unknown>), stage: session.state, updatedAt: session.updated_at };
-        const next = normalizePayload(tournamentId, payload);
-        lastSessionUpdateRef.current = next.updatedAt;
-        setState(next);
-        void loadOverlayData(next.matchNumber ?? 1);
-      } catch {
-        // Realtime remains active; a temporary polling failure should not blank the overlay.
-      }
-    }, 1200);
+    // Realtime is the fast path. Token-authenticated snapshot polling is the
+    // durable fallback for OBS reconnects and missed broadcast events.
+    const timer = window.setInterval(() => {
+      void loadOverlayData(state.matchNumber ?? 1);
+    }, 900);
 
     return () => window.clearInterval(timer);
-  }, [hydrated, loadOverlayData, tournamentId]);
+  }, [hydrated, loadOverlayData, state.matchNumber]);
+
 
   if (!hydrated || data.loading) return <main className="broadcast-overlay broadcast-overlay-loading"><div className="ff-loading-mark">BA</div><span>SYNCING BROADCAST FEED</span><i /></main>;
   if (data.error) return <main className="broadcast-overlay broadcast-overlay-error"><span>DATA SYNC FAILED</span><h1>BROADCAST FEED ERROR</h1><p>{data.error}</p></main>;
