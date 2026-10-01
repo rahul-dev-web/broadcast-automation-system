@@ -25,7 +25,7 @@ class AgentWindow:
         ttk.Label(controls,text="FPS").pack(side="left");ttk.Entry(controls,textvariable=self.fps,width=6).pack(side="left",padx=6)
         self.start=ttk.Button(controls,text="Start Capture",command=self.start_capture);self.start.pack(side="left",padx=6)
         ttk.Button(controls,text="Stop",command=self.stop_capture).pack(side="left",padx=6)
-        self.preview=ttk.Label(self,text="Preview unavailable");self.preview.pack(fill="both",expand=True,padx=12,pady=12)
+        self.preview=ttk.Label(self.root,text="Preview unavailable");self.preview.pack(fill="both",expand=True,padx=12,pady=12)
         self.root.protocol("WM_DELETE_WINDOW",self.close)
 
     def start_capture(self):
