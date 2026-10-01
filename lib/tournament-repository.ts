@@ -6,6 +6,7 @@ export async function createTournament(draft: TournamentDraft) {
   if (draft.totalMatches < 1 || draft.totalMatches > 50) {
     throw new Error("Total matches must be between 1 and 50.");
   }
+  if (!draft.designId) throw new Error("Select a broadcast design package.");
   if (draft.presentationMode === "CUSTOM" && draft.customMatches.length === 0) {
     throw new Error("Select at least one match for Custom PT mode.");
   }
@@ -54,6 +55,7 @@ export async function createTournament(draft: TournamentDraft) {
       pt_mode: draft.presentationMode,
       selected_pt_matches:
         draft.presentationMode === "CUSTOM" ? draft.customMatches : [],
+      design_id: draft.designId,
       status: "READY",
     })
     .select("id")
