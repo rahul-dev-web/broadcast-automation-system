@@ -67,6 +67,8 @@ function DesignPreview({
   backgroundUrl,
   backgroundMime,
   logoUrl,
+  headingFontUrl,
+  bodyFontUrl,
   name,
 }: {
   design: BroadcastDesignConfig;
@@ -75,6 +77,8 @@ function DesignPreview({
   backgroundUrl: string | null;
   backgroundMime: string | null;
   logoUrl: string | null;
+  headingFontUrl: string | null;
+  bodyFontUrl: string | null;
   name: string;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -92,7 +96,11 @@ function DesignPreview({
 
   const policy = design.stageDefaults[stage] ?? { background: "FULL", panel: "CLEAN" };
   const isTransparent = policy.background === "TRANSPARENT";
-  const vars = designCssVariables(design, stage);
+  const vars = {
+    ...designCssVariables(design, stage),
+    ...(headingFontUrl ? { "--theme-heading-font": "BroadcastPreviewHeading" } : {}),
+    ...(bodyFontUrl ? { "--theme-body-font": "BroadcastPreviewBody" } : {}),
+  } as CSSProperties;
   const motionType = design.animations.stage.type.toLowerCase().replaceAll("_", "-");
   const densityClass = `density-${design.layout.density.toLowerCase()}`;
   const rootClass = `ff-broadcast-root stage-${stage.toLowerCase()} ${previewDesignClass(design.layout.style)} ${densityClass} ${styles[`motion-${motionType}`] ?? ""}`;
@@ -100,6 +108,10 @@ function DesignPreview({
     <div className={styles.previewViewport} ref={viewportRef}>
       <div className={styles.previewCanvas} style={{ transform: `scale(${scale})` }}>
         <div className={rootClass} style={vars}>
+        {(headingFontUrl || bodyFontUrl) && <style>{`
+          ${headingFontUrl ? `@font-face{font-family:BroadcastPreviewHeading;src:url("${headingFontUrl}");font-display:swap;}` : ""}
+          ${bodyFontUrl ? `@font-face{font-family:BroadcastPreviewBody;src:url("${bodyFontUrl}");font-display:swap;}` : ""}
+        `}</style>}
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("video/") && <video className="ff-design-background" src={backgroundUrl} autoPlay muted loop playsInline />}
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("image/") && <img className="ff-design-background" src={backgroundUrl} alt="" />}
         {isTransparent && <div className={styles.transparencyGrid} />}
@@ -492,6 +504,8 @@ export function BroadcastDesignStudio() {
               backgroundUrl={stageAssetUrl}
               backgroundMime={stageAsset?.mime_type ?? null}
               logoUrl={selectedAssets.find(item => item.slot === "logo_broadcast")?.config?.publicUrl as string | undefined ?? null}
+              headingFontUrl={selectedAssets.find(item => item.slot === "font_heading" || item.slot === "font_primary")?.config?.publicUrl as string | undefined ?? null}
+              bodyFontUrl={selectedAssets.find(item => item.slot === "font_body" || item.slot === "font_primary")?.config?.publicUrl as string | undefined ?? null}
               name={draftName}
             />
             <div className={styles.previewNote}>
