@@ -244,8 +244,9 @@ export function designCssVariables(
     "--theme-shadow": palette.shadow,
     "--theme-heading-font": palette.heading,
     "--theme-body-font": palette.body,
-    "--theme-heading-weight": String(palette.weight),
-    "--theme-tracking": palette.tracking,
+    "--theme-heading-weight": String(design.typography.headingWeight || palette.weight),
+    "--theme-body-weight": String(design.typography.bodyWeight || 500),
+    "--theme-tracking": design.typography.tracking || palette.tracking,
     "--theme-stage-background": stageBackground,
   } as CSSProperties;
 }
