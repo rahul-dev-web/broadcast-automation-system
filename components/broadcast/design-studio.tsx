@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
   ANIMATION_TYPES,
@@ -9,6 +9,7 @@ import {
   DESIGN_STAGES,
   cloneDesignConfig,
   normalizeDesign,
+  designCssVariables,
   type BroadcastDesignAsset,
   type BroadcastDesignConfig,
   type BroadcastDesignRecord,
@@ -44,6 +45,83 @@ function stageBackgroundSlot(stage: DesignStage) {
   if (stage === "MATCH_VERIFIED" || stage === "MATCH_PT") return "background_result";
   if (stage === "OVERALL") return "background_overall";
   return "outro_thank_you";
+}
+
+
+const previewTeams = Array.from({ length: 12 }, (_, index) => ({
+  number: index + 1,
+  prefix: ["RDS", "IGL", "TJF", "CLZ", "NXT", "VTX", "FLC", "ARC", "ZEN", "VPR", "NOVA", "RGE"][index],
+}));
+
+function previewDesignClass(style: string) {
+  return style === "ANGULAR" ? "design-angular-arena"
+    : style === "CINEMATIC" ? "design-championship-cinematic"
+    : style === "GRID" ? "design-future-grid"
+    : "design-minimal";
+}
+
+function DesignPreview({
+  design,
+  stage,
+  stageLabel,
+  backgroundUrl,
+  backgroundMime,
+  logoUrl,
+  name,
+}: {
+  design: BroadcastDesignConfig;
+  stage: DesignStage;
+  stageLabel: string;
+  backgroundUrl: string | null;
+  backgroundMime: string | null;
+  logoUrl: string | null;
+  name: string;
+}) {
+  const policy = design.stageDefaults[stage] ?? { background: "FULL", panel: "CLEAN" };
+  const isTransparent = policy.background === "TRANSPARENT";
+  const vars = designCssVariables(design, stage);
+  const rootClass = `ff-broadcast-root stage-${stage.toLowerCase()} ${previewDesignClass(design.layout.style)}`;
+  return (
+    <div className={styles.previewViewport}>
+      <div className={rootClass} style={vars}>
+        {backgroundUrl && !isTransparent && backgroundMime?.startsWith("video/") && <video className="ff-design-background" src={backgroundUrl} autoPlay muted loop playsInline />}
+        {backgroundUrl && !isTransparent && backgroundMime?.startsWith("image/") && <img className="ff-design-background" src={backgroundUrl} alt="" />}
+        {isTransparent && <div className={styles.transparencyGrid} />}
+        <div className="ff-bg" />
+        {logoUrl && <img className="ff-design-logo" src={logoUrl} alt="" />}
+        <div className="ff-global-header">
+          <div className="ff-brand"><span className="ff-brand-mark">BA</span><div><strong>{name || "TOURNAMENT"}</strong><small>OFFICIAL TOURNAMENT BROADCAST</small></div></div>
+        </div>
+        {(stage === "ROSTER_1" || stage === "ROSTER_2") && (
+          <section className="ff-stage ff-lineup-stage">
+            <div className="ff-corner ff-corner-tl" /><div className="ff-corner ff-corner-tr" /><div className="ff-corner ff-corner-bl" /><div className="ff-corner ff-corner-br" />
+            <div className="ff-title-block"><span>{name || "TOURNAMENT"}</span><h1>TEAM <em>LINEUP</em></h1><i>{stage === "ROSTER_1" ? "01" : "02"} / 02</i></div>
+            <div className="ff-lineup-grid">
+              {previewTeams.slice(stage === "ROSTER_1" ? 0 : 6, stage === "ROSTER_1" ? 6 : 12).map((team, i) => (
+                <article className="ff-lineup-card" key={team.number} style={{ "--delay": `${i * 70}ms` } as CSSProperties}>
+                  <div className="ff-lineup-card-head"><span className="ff-team-logo ff-team-logo-fallback">{team.prefix}</span><div><strong>{team.prefix} ESPORTS</strong><span>{team.prefix}</span></div><b>#{String(team.number).padStart(2, "0")}</b></div>
+                  <div className="ff-player-strip">{[1,2,3,4].map(slot => <div className="ff-player-chip" key={slot}><span>0{slot}</span><strong>{team.prefix}_PLAYER</strong></div>)}</div>
+                </article>
+              ))}
+            </div>
+            <div className="ff-stage-footer"><span>OFFICIAL TOURNAMENT BROADCAST</span><b>LIVE PRODUCTION</b></div>
+          </section>
+        )}
+        {stage === "ROOM" && (
+          <section className="ff-stage ff-room-stage"><div className="ff-room-orbit" /><div className="ff-room-copy"><span className="ff-overline">MATCH 01 · {name || "TOURNAMENT"}</span><h1>GET<br /><em>READY</em></h1><p>ROOM IS OPEN · 12 TEAMS REGISTERED · 01 / LIVE SERIES</p><div className="ff-ready-pill"><span /> MATCH READY</div></div><div className="ff-room-grid">{previewTeams.slice(0,8).map(team => <div className="ff-room-team" key={team.number}><b>{String(team.number).padStart(2,"0")}</b><strong>{team.prefix}</strong><span>{team.prefix} ESPORTS</span></div>)}</div><div className="ff-action-bar"><span>ACTION STARTS WHEN THE MATCH GOES LIVE</span><strong>POINT RUSH</strong></div></section>
+        )}
+        {(stage === "MATCH_LIVE" || stage === "MATCH_REVIEW") && (
+          <section className="ff-stage ff-live-stage"><div className="ff-live-top"><div className="ff-live-match">MATCH 01</div><div className="ff-live-center">{stage === "MATCH_LIVE" ? "LIVE" : "REVIEW"} <b>•</b> 12 TEAMS</div><div className="ff-live-feed">BROADCAST <span /></div></div><div className="ff-standings"><div className="ff-standings-title"><strong>LIVE STANDINGS</strong><span>PTS</span></div><div className="ff-standings-legend">ALIVE / ELIMINATED</div>{previewTeams.slice(0,7).map((team,i)=><div className="ff-standing-row" key={team.number}><b>{i+1}</b><strong>{team.prefix}</strong><em>{32-i*3}</em></div>)}</div><div className="ff-player-focus"><div className="ff-focus-accent" /><div className="ff-focus-team">PLAYER FOCUS <span>{previewTeams[0].prefix}</span></div><strong>{previewTeams[0].prefix}_PLAYER</strong><div className="ff-focus-meta">4 KILLS · ALIVE · MATCH 01</div></div><div className="ff-live-score-strip">{previewTeams.map((team,i)=><div className="ff-live-score" key={team.number}><b>{i+1}</b><strong>{team.prefix}</strong><span>{12-i} KILLS</span></div>)}</div></section>
+        )}
+        {(stage === "MATCH_VERIFIED" || stage === "MATCH_PT") && (
+          <section className="ff-stage ff-results-stage"><div className="ff-results-heading"><div><span className="ff-overline">MATCH 01 · VERIFIED</span><h1>MATCH <em>RESULT</em></h1></div><b>POINTS TABLE</b></div><div className="ff-results-table"><div className="ff-results-head"><span>#</span><span>TEAM</span><span>KILLS</span><span>PLACE</span><span>PTS</span></div>{previewTeams.slice(0,7).map((team,i)=><div className={`ff-results-row ${i===0 ? "top-row" : ""}`} key={team.number}><b>{i+1}</b><strong>{team.prefix} ESPORTS</strong><span>{12-i}</span><span>{i+1}</span><em>{32-i*3}</em></div>)}</div></section>
+        )}
+        {stage === "OVERALL" && <section className="ff-stage ff-overall-stage"><div className="ff-overall-title"><span className="ff-overline">TOURNAMENT LEADERBOARD</span><h1>OVERALL <em>STANDINGS</em></h1><b>AFTER MATCH 01</b></div><div className="ff-overall-table">{previewTeams.slice(0,7).map((team,i)=><div className={`ff-overall-row ${i<3 ? "podium-row" : ""}`} key={team.number}><b>{i+1}</b><strong>{team.prefix}</strong><span>12 KILLS</span><i>+{32-i*3} PTS</i><em>{32-i*3}</em></div>)}</div></section>}
+        {stage === "THANK_YOU" && <section className="ff-stage ff-simple-stage"><span>THANK YOU FOR WATCHING</span><h1>SEE YOU<br />NEXT MATCH</h1><p>{name || "TOURNAMENT"} · OFFICIAL BROADCAST</p></section>}
+        <div className="ff-global-footer"><span>DESIGN PREVIEW</span><i>•</i><span>{stageLabel.toUpperCase()}</span><i>•</i><span>{design.layout.style}</span></div>
+      </div>
+    </div>
+  );
 }
 
 export function BroadcastDesignStudio() {
@@ -390,23 +468,15 @@ export function BroadcastDesignStudio() {
               <div><p className="eyebrow">LIVE PREVIEW</p><h2>{draftName}</h2></div>
               <div className={styles.stageTabs}>{DESIGN_STAGES.map(item => <button key={item} className={stage === item ? styles.selectedTab : ""} onClick={() => setStage(item)}>{stageLabels[item]}</button>)}</div>
             </div>
-            <div className={styles.preview}>
-              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset?.mime_type?.startsWith("video/") && (
-                <video className={styles.previewMedia} src={stageAssetUrl} autoPlay muted loop playsInline />
-              )}
-              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset?.mime_type?.startsWith("image/") && (
-                <img className={styles.previewMedia} src={stageAssetUrl} alt="" />
-              )}
-              <div className={styles.previewShade} />
-              <div className={styles.previewBrand}><span>✦</span><strong>{draftName.toUpperCase()}</strong><small>{stageLabels[stage]}</small></div>
-              <div className={styles.previewCenter}>
-                <span>MATCH {stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "LIVE" : "01"}</span>
-                <h3>{draft.layout.style}</h3>
-                <p>{currentStagePolicy.background === "TRANSPARENT" ? "GAMEPLAY-SAFE TRANSPARENT CANVAS" : "FULL-SCENE DESIGN CANVAS"}</p>
-                <div className={styles.previewRows}><i /><i /><i /><i /></div>
-              </div>
-              <div className={styles.previewFooter}><span>{draft.animations.entry.type.replaceAll("_", " ")}</span><span>{draft.animations.stage.durationMs}ms stage motion</span><span>{draft.layout.density} DENSITY</span></div>
-            </div>
+            <DesignPreview
+              design={draft}
+              stage={stage}
+              stageLabel={stageLabels[stage]}
+              backgroundUrl={stageAssetUrl}
+              backgroundMime={stageAsset?.mime_type ?? null}
+              logoUrl={selectedAssets.find(item => item.slot === "logo_broadcast")?.config?.publicUrl as string | undefined ?? null}
+              name={draftName}
+            />
             <div className={styles.previewNote}>
               <strong>{currentStagePolicy.background === "TRANSPARENT" ? "Transparent gameplay-safe stage" : "Full-scene stage"}</strong>
               <span>{stageAsset ? `${stageAsset.name} is assigned to ${stageLabels[stage]}.` : "No asset uploaded for this stage slot yet; the renderer will use the design fallback."}</span>
