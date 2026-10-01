@@ -132,3 +132,40 @@
   background-size:32px 32px;
   background-position:0 0,0 16px,16px -16px,-16px 0;
 }
+
+.motion-fade .ff-stage{animation:previewFade var(--design-stage-duration) ease both}
+.motion-fade-up .ff-stage{animation:previewFadeUp var(--design-stage-duration) ease both}
+.motion-slide-left .ff-stage{animation:previewSlideLeft var(--design-stage-duration) ease both}
+.motion-slide-right .ff-stage{animation:previewSlideRight var(--design-stage-duration) ease both}
+.motion-slide-up .ff-stage{animation:previewSlideUp var(--design-stage-duration) ease both}
+.motion-slide-down .ff-stage{animation:previewSlideDown var(--design-stage-duration) ease both}
+.motion-scale .ff-stage{animation:previewScale var(--design-stage-duration) cubic-bezier(.2,.8,.2,1) both}
+.motion-reveal .ff-stage{animation:previewReveal var(--design-stage-duration) ease both}
+.motion-wipe .ff-stage{animation:previewWipe var(--design-stage-duration) ease both}
+.motion-clip .ff-stage{animation:previewClip var(--design-stage-duration) ease both}
+.motion-scan-reveal .ff-stage{animation:previewScan var(--design-stage-duration) ease both}
+.motion-glitch-out .ff-stage{animation:previewGlitch var(--design-stage-duration) steps(3) both}
+.motion-data-in .ff-stage{animation:previewData var(--design-stage-duration) linear both}
+.motion-digital-wipe .ff-stage{animation:previewWipe var(--design-stage-duration) ease both}
+
+.density-low .ff-lineup-grid{gap:22px}
+.density-low .ff-lineup-card{min-height:156px;padding:16px}
+.density-high .ff-lineup-grid{gap:8px}
+.density-high .ff-lineup-card{min-height:124px;padding:9px}
+.density-high .ff-player-chip{padding:4px 5px}
+.density-low .ff-global-footer{letter-spacing:.2em}
+.density-high .ff-global-footer{letter-spacing:.11em}
+
+@keyframes previewFade{from{opacity:0}to{opacity:1}}
+@keyframes previewFadeUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}
+@keyframes previewSlideLeft{from{opacity:0;transform:translateX(90px)}to{opacity:1;transform:none}}
+@keyframes previewSlideRight{from{opacity:0;transform:translateX(-90px)}to{opacity:1;transform:none}}
+@keyframes previewSlideUp{from{opacity:0;transform:translateY(70px)}to{opacity:1;transform:none}}
+@keyframes previewSlideDown{from{opacity:0;transform:translateY(-70px)}to{opacity:1;transform:none}}
+@keyframes previewScale{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:none}}
+@keyframes previewReveal{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes previewWipe{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes previewClip{from{opacity:0;clip-path:polygon(0 0,0 0,0 100%,0 100%)}to{opacity:1;clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}
+@keyframes previewScan{from{opacity:0;filter:brightness(2) saturate(0);transform:translateY(-14px)}to{opacity:1;filter:none;transform:none}}
+@keyframes previewGlitch{0%{opacity:0;transform:translateX(12px)}50%{opacity:1;transform:translateX(-4px)}100%{opacity:1;transform:none}}
+@keyframes previewData{from{opacity:0;transform:translateY(12px);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
