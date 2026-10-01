@@ -227,6 +227,24 @@ function SimpleStage({ stage }: { stage: BroadcastStage }) {
   );
 }
 
+function StartingStage({ introAsset }: { introAsset?: DesignRuntimeAsset }) {
+  if (!introAsset) {
+    return <SimpleStage stage="AUTOMATION_STARTED" />;
+  }
+
+  return (
+    <section className="ff-stage ff-simple-stage" aria-label="Broadcast intro">
+      <video
+        src={introAsset.url}
+        autoPlay
+        muted
+        playsInline
+        className="ff-starting-intro"
+      />
+    </section>
+  );
+}
+
 export function LiveOverlay({ tournamentId, token }: { tournamentId: string; token: string }) {
   const overlaySupabase = useMemo(() => createBroadcastClient(token), [token]);
   const [state, setState] = useState<BroadcastStatePayload>({ ...initialState, tournamentId });
@@ -422,8 +440,10 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     : stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "background_live"
     : stage === "MATCH_VERIFIED" || stage === "MATCH_PT" ? "background_result"
     : stage === "OVERALL" ? "background_overall"
-    : "outro_thank_you";
-  const backgroundAsset = designAssets.find(asset => asset.slot === backgroundSlot);
+    : stage === "THANK_YOU" ? "outro_thank_you"
+    : null;
+  const backgroundAsset = backgroundSlot ? designAssets.find(asset => asset.slot === backgroundSlot) : undefined;
+  const introAsset = designAssets.find(asset => asset.slot === "intro_starting");
   const broadcastLogo = designAssets.find(asset => asset.slot === "logo_broadcast");
   const headingFont = designAssets.find(asset => asset.slot === "font_heading" || asset.slot === "font_primary");
   const bodyFont = designAssets.find(asset => asset.slot === "font_body" || asset.slot === "font_primary");
@@ -439,6 +459,9 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     ...(bodyFont ? { "--theme-body-font": "BroadcastDesignBody" } : {}),
   } as CSSProperties;
 
+  const hasCustomIntro = stage === "AUTOMATION_STARTED" && Boolean(introAsset);
+  const hasCustomOutro = stage === "THANK_YOU" && Boolean(backgroundAsset);
+
   return (
     <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} ${designClass}`} style={runtimeStyle}>
       {(headingFont || bodyFont) && <style>{`
@@ -446,23 +469,36 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         @font-face{font-family:BroadcastDesignBody;src:url("${bodyFont?.url ?? headingFont?.url}") format("woff2");font-display:swap;}
       `}</style>}
       <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>
-      {backgroundAsset && allowBackground && backgroundAsset.mimeType?.startsWith("video/")
-        ? <video className="ff-bg ff-design-background" src={backgroundAsset.url} autoPlay muted loop playsInline />
-        : backgroundAsset && allowBackground
-          ? <img className="ff-bg ff-design-background" src={backgroundAsset.url} alt="" />
-          : <div className="ff-bg" />}
-      <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} logoUrl={broadcastLogo?.url} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
-      <div className="ff-stage-mount" key={stage}>
-        {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} tournamentName={data.tournamentName} />
-          : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
-          : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} tournamentName={data.tournamentName} />
-          : stage === "MATCH_VERIFIED" ? <BooyahStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
-          : stage === "MATCH_PT" ? <MatchResultStage rows={currentScores} title="GAME STANDINGS" subtitle="OFFICIAL MATCH RESULT" matchNumber={state.matchNumber ?? 1} />
-          : stage === "MATCH_REVIEW" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={null} teams={data.teams} tournamentName={data.tournamentName} statusLabel="MATCH COMPLETE" />
-          : stage === "OVERALL" ? <OverallStage rows={overallScores} tournamentName={data.tournamentName} />
-          : <SimpleStage stage={stage} />}
-      </div>
-      {stage !== "MATCH_LIVE" && stage !== "MATCH_REVIEW" && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
+
+      {hasCustomIntro ? (
+        <div className="ff-starting-intro-mount">
+          <video src={introAsset?.url} autoPlay muted playsInline className="ff-starting-intro" />
+        </div>
+      ) : (
+        <>
+          {backgroundAsset && allowBackground && backgroundAsset.mimeType?.startsWith("video/")
+            ? <video className="ff-bg ff-design-background" src={backgroundAsset.url} autoPlay muted loop playsInline />
+            : backgroundAsset && allowBackground
+              ? <img className="ff-bg ff-design-background" src={backgroundAsset.url} alt="" />
+              : <div className="ff-bg" />}
+
+          <header className="ff-global-header"><BroadcastBrand tournamentName={data.tournamentName} logoUrl={broadcastLogo?.url} /><div className="ff-connection"><span className={isLive ? "ff-live-dot" : "ff-live-dot ff-offline"} />{isLive ? "LIVE" : connection}</div></header>
+
+          <div className="ff-stage-mount" key={stage}>
+            {stage === "ROSTER_1" || stage === "ROSTER_2" ? <LineupStage teams={data.teams} page={page} tournamentName={data.tournamentName} />
+              : stage === "ROOM" ? <RoomStage teams={data.teams} matchNumber={state.matchNumber ?? 1} tournamentName={data.tournamentName} />
+              : stage === "MATCH_LIVE" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={state.currentPlayer} teams={data.teams} tournamentName={data.tournamentName} />
+              : stage === "MATCH_VERIFIED" ? <BooyahStage rows={currentScores} matchNumber={state.matchNumber ?? 1} />
+              : stage === "MATCH_PT" ? <MatchResultStage rows={currentScores} title="GAME STANDINGS" subtitle="OFFICIAL MATCH RESULT" matchNumber={state.matchNumber ?? 1} />
+              : stage === "MATCH_REVIEW" ? <LiveHud rows={currentScores} matchNumber={state.matchNumber ?? 1} currentPlayer={null} teams={data.teams} tournamentName={data.tournamentName} statusLabel="MATCH COMPLETE" />
+              : stage === "OVERALL" ? <OverallStage rows={overallScores} tournamentName={data.tournamentName} />
+              : stage === "AUTOMATION_STARTED" ? <StartingStage introAsset={undefined} />
+              : <SimpleStage stage={stage} />}
+          </div>
+
+          {stage !== "MATCH_LIVE" && stage !== "MATCH_REVIEW" && !hasCustomOutro && <footer className="ff-global-footer"><span>GAME {String(state.matchNumber ?? 1).padStart(2, "0")} / {String(data.totalMatches).padStart(2, "0")}</span><i>•</i><span>{stage.replaceAll("_", " ")}</span><i>•</i><span>OBS BROWSER SOURCE</span></footer>}
+        </>
+      )}
     </main>
   );
 }
