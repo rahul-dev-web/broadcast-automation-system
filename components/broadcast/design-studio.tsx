@@ -16,8 +16,7 @@ import {
 } from "@/lib/broadcast-design";
 import styles from "./design-studio.module.css";
 
-type ThemeOption = { id: string; name: string; theme_type: "SYSTEM" | "CUSTOM"; preset_id: string | null };
-type Tournament = { id: string; name: string; design_id: string | null; theme_id: string | null };
+type Tournament = { id: string; name: string; design_id: string | null };
 
 const stageLabels: Record<DesignStage, string> = {
   ROSTER_1: "Roster",
@@ -50,7 +49,6 @@ function stageBackgroundSlot(stage: DesignStage) {
 export function BroadcastDesignStudio() {
   const [designs, setDesigns] = useState<BroadcastDesignRecord[]>([]);
   const [assets, setAssets] = useState<BroadcastDesignAsset[]>([]);
-  const [themes, setThemes] = useState<ThemeOption[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [organizationId, setOrganizationId] = useState("");
   const [userId, setUserId] = useState("");
@@ -59,7 +57,6 @@ export function BroadcastDesignStudio() {
   const [draft, setDraft] = useState<BroadcastDesignConfig>(normalizeDesign());
   const [draftName, setDraftName] = useState("New Broadcast Design");
   const [draftDescription, setDraftDescription] = useState("");
-  const [themeId, setThemeId] = useState("");
   const [stage, setStage] = useState<DesignStage>("MATCH_LIVE");
   const [assignment, setAssignment] = useState("");
   const [loading, setLoading] = useState(true);
@@ -99,22 +96,19 @@ export function BroadcastDesignStudio() {
     setOrganizationId(member.organization_id);
     setRole(member.role);
 
-    const [designResult, assetResult, themeResult, tournamentResult] = await Promise.all([
-      supabase.from("broadcast_designs").select("id,organization_id,theme_id,name,description,design_type,preset_id,version,config").order("design_type").order("created_at"),
+    const [designResult, assetResult, tournamentResult] = await Promise.all([
+      supabase.from("broadcast_designs").select("id,organization_id,name,description,design_type,preset_id,version,config").order("design_type").order("created_at"),
       supabase.from("broadcast_design_assets").select("*").eq("organization_id", member.organization_id).order("created_at"),
-      supabase.from("broadcast_themes").select("id,name,theme_type,preset_id").order("theme_type").order("name"),
-      supabase.from("tournaments").select("id,name,design_id,theme_id").eq("organization_id", member.organization_id).order("created_at", { ascending: false }),
+      supabase.from("tournaments").select("id,name,design_id").eq("organization_id", member.organization_id).order("created_at", { ascending: false }),
     ]);
 
     if (designResult.error) setError(designResult.error.message);
     if (assetResult.error) setError(assetResult.error.message);
-    if (themeResult.error) setError(themeResult.error.message);
     if (tournamentResult.error) setError(tournamentResult.error.message);
 
     const nextDesigns = (designResult.data ?? []) as BroadcastDesignRecord[];
     setDesigns(nextDesigns);
     setAssets((assetResult.data ?? []) as BroadcastDesignAsset[]);
-    setThemes((themeResult.data ?? []) as ThemeOption[]);
     setTournaments((tournamentResult.data ?? []) as Tournament[]);
 
     if (!selectedId && nextDesigns[0]) selectDesign(nextDesigns[0], tournamentResult.data ?? [], assetResult.data ?? []);
@@ -135,7 +129,6 @@ export function BroadcastDesignStudio() {
     setDraft(normalizeDesign(design.config));
     setDraftName(design.name);
     setDraftDescription(design.description ?? "");
-    setThemeId(design.theme_id ?? "");
     setAssignment(tournamentRows.find(item => item.design_id === design.id)?.id ?? "");
     setAssets(assetRows as BroadcastDesignAsset[]);
     setMessage("");
@@ -148,7 +141,6 @@ export function BroadcastDesignStudio() {
     setDraft(base);
     setDraftName("New Broadcast Design");
     setDraftDescription("Custom tournament broadcast design.");
-    setThemeId(themes.find(item => item.theme_type === "SYSTEM")?.id ?? "");
     setAssignment("");
     setMessage("");
     setError("");
@@ -160,7 +152,6 @@ export function BroadcastDesignStudio() {
     setDraft(cloneDesignConfig(selected.config));
     setDraftName(`${selected.name} Custom`);
     setDraftDescription(selected.description ?? "Custom broadcast design.");
-    setThemeId(selected.theme_id ?? themes.find(item => item.theme_type === "SYSTEM")?.id ?? "");
     setAssignment("");
     setMessage("");
     setError("");
@@ -198,7 +189,6 @@ export function BroadcastDesignStudio() {
     const payload = {
       name: draftName.trim() || "Custom Broadcast Design",
       description: draftDescription.trim() || null,
-      theme_id: themeId || null,
       config: normalizeDesign(draft),
       updated_at: new Date().toISOString(),
     };
@@ -216,13 +206,12 @@ export function BroadcastDesignStudio() {
     } else {
       const { data, error: insertError } = await supabase.from("broadcast_designs").insert({
         organization_id: organizationId,
-        theme_id: themeId || null,
         name: payload.name,
         description: payload.description,
         design_type: "CUSTOM",
         config: payload.config,
         created_by: userId,
-      }).select("id,organization_id,theme_id,name,description,design_type,preset_id,version,config").single();
+      }).select("id,organization_id,name,description,design_type,preset_id,version,config").single();
 
       if (insertError) setError(insertError.message);
       else if (data) {
@@ -240,12 +229,11 @@ export function BroadcastDesignStudio() {
     setError("");
     const { error: updateError } = await supabase.from("tournaments").update({
       design_id: selectedId,
-      theme_id: themeId || null,
     }).eq("id", assignment);
     if (updateError) setError(updateError.message);
     else {
-      setTournaments(current => current.map(item => item.id === assignment ? { ...item, design_id: selectedId, theme_id: themeId || null } : item));
-      setMessage("Design synced to the tournament. The broadcast overlay will resolve its linked visual theme.");
+      setTournaments(current => current.map(item => item.id === assignment ? { ...item, design_id: selectedId } : item));
+      setMessage("Design synced to the tournament. The broadcast overlay will use this design pack directly.");
     }
     setSaving(false);
   }
@@ -433,7 +421,6 @@ export function BroadcastDesignStudio() {
 
             <div className="form-grid two">
               <label className="field"><span>Design name</span><input value={draftName} onChange={e => setDraftName(e.target.value)} disabled={isSystem || !canEdit} /></label>
-              <label className="field"><span>Base visual theme</span><select value={themeId} onChange={e => setThemeId(e.target.value)} disabled={isSystem || !canEdit}><option value="">No theme</option>{themes.map(item => <option key={item.id} value={item.id}>{item.name}{item.theme_type === "SYSTEM" ? " · system" : ""}</option>)}</select></label>
             </div>
             <label className="field"><span>Description</span><textarea value={draftDescription} onChange={e => setDraftDescription(e.target.value)} rows={2} disabled={isSystem || !canEdit} /></label>
 
@@ -506,12 +493,11 @@ export function BroadcastDesignStudio() {
           <div className={`panel ${styles.assignment}`}>
             <div className={styles.editorHead}>
               <div><p className="eyebrow">TOURNAMENT SYNC</p><h2>Assign the design pack</h2></div>
-              <span className="status-pill">DESIGN → THEME → OVERLAY</span>
+              <span className="status-pill">DESIGN → OVERLAY</span>
             </div>
-            <p className="muted">A tournament stores the selected design and linked theme. The live browser source can resolve the same visual package without a second manual OBS selection.</p>
+            <p className="muted">A tournament stores one broadcast design pack. The live browser source resolves that design directly, so there is no second theme selection.</p>
             <div className="form-grid two">
               <label className="field"><span>Tournament</span><select value={assignment} onChange={e => setAssignment(e.target.value)} disabled={!selectedId || saving}><option value="">Choose tournament…</option>{tournaments.map(item => <option key={item.id} value={item.id}>{item.name}{item.design_id === selectedId ? " · current" : ""}</option>)}</select></label>
-              <div className="field"><span>Linked theme</span><div className="readonly-control">{themes.find(item => item.id === themeId)?.name ?? "No theme selected"}</div></div>
             </div>
             <div className={styles.actions}><button className="primary-button" onClick={() => void assignDesign()} disabled={!selectedId || !assignment || saving}>Assign design</button><button className="ghost-button" onClick={() => void clearAssignment()} disabled={!assignment || saving}>Clear</button></div>
           </div>
