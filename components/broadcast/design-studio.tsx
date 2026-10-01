@@ -403,11 +403,11 @@ export function BroadcastDesignStudio() {
               <div className={styles.stageTabs}>{DESIGN_STAGES.map(item => <button key={item} className={stage === item ? styles.selectedTab : ""} onClick={() => setStage(item)}>{stageLabels[item]}</button>)}</div>
             </div>
             <div className={styles.preview}>
-              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("video/") && (
+              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset?.mime_type?.startsWith("video/") && (
                 <video className={styles.previewMedia} src={stageAssetUrl} autoPlay muted loop playsInline />
               )}
-              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset.mime_type?.startsWith("image/") && (
-                <img className={styles.previewMedia} src={String(stageAsset.config.publicUrl)} alt="" />
+              {stageAssetUrl && currentStagePolicy.background === "FULL" && stageAsset?.mime_type?.startsWith("image/") && (
+                <img className={styles.previewMedia} src={stageAssetUrl} alt="" />
               )}
               <div className={styles.previewShade} />
               <div className={styles.previewBrand}><span>✦</span><strong>{draftName.toUpperCase()}</strong><small>{stageLabels[stage]}</small></div>
