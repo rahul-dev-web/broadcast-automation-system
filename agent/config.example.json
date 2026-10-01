@@ -1,0 +1,1 @@
+{"supabase_url":"https://YOUR_PROJECT.supabase.co","access_token":"USER_ACCESS_TOKEN","tournament_id":"TOURNAMENT_UUID","match_id":"MATCH_UUID","capture":{"source":"monitor","monitor":1,"fps":15},"rois":{"player_name":[0,0,800,160],"kill_feed":[1120,0,800,420],"result":[0,0,1920,1080]},"enable_ocr":false,"ocr":{"language":"en"}}
