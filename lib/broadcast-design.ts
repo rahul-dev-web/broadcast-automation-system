@@ -183,7 +183,7 @@ export function cloneDesignConfig(input?: Partial<BroadcastDesignConfig> | null)
 
 export function designCssVariables(
   input?: Partial<BroadcastDesignConfig> | null,
-  stage: DesignStage = "ROSTER_1",
+  stage: string = "ROSTER_1",
 ): CSSProperties {
   const design = normalizeDesign(input);
   const palettes: Record<string, {
