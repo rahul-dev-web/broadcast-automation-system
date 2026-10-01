@@ -396,10 +396,14 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         error: "",
       });
     } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Broadcast snapshot could not be loaded.";
+      const friendly = /Invalid broadcast token/i.test(message)
+        ? "OBS URL is no longer valid. Generate a fresh OBS URL from the tournament dashboard."
+        : message;
       setData(current => ({
         ...current,
         loading: false,
-        error: caught instanceof Error ? caught.message : "Broadcast snapshot could not be loaded.",
+        error: friendly,
       }));
     }
   }, [overlaySupabase, token, tournamentId]);
