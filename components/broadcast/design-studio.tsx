@@ -16,6 +16,7 @@ import {
   type DesignStage,
 } from "@/lib/broadcast-design";
 import styles from "./design-studio.module.css";
+import { resolveOperatorWorkspace } from "@/lib/operator-workspace";
 
 type Tournament = { id: string; name: string; design_id: string | null };
 
@@ -217,36 +218,33 @@ export function BroadcastDesignStudio() {
     }
     setUserId(user.id);
 
-    const { data: member, error: memberError } = await supabase
-      .from("organization_members")
-      .select("organization_id,role")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (memberError || !member) {
-      setError(memberError?.message ?? "Workspace not found.");
+    let workspace;
+    try {
+      workspace = await resolveOperatorWorkspace();
+    } catch (workspaceError) {
+      setError(workspaceError instanceof Error ? workspaceError.message : "Workspace not found.");
       setLoading(false);
       return;
     }
 
-    setOrganizationId(member.organization_id);
-    setRole(member.role);
+    setOrganizationId(workspace.organizationId);
+    setRole(workspace.role);
 
-    const [{ data: profile }, { data: subscription }] = await Promise.all([
-      supabase.from("profiles").select("platform_role").eq("id", user.id).maybeSingle(),
-      supabase.from("subscriptions").select("plan_id,status,expires_at").eq("organization_id", member.organization_id).maybeSingle(),
-    ]);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("platform_role")
+      .eq("id", user.id)
+      .maybeSingle();
+
     setPlatformRole(profile?.platform_role ?? "USER");
-    setPlanId(subscription?.plan_id ?? "");
-    setSubscriptionStatus(subscription?.status ?? "");
-    setSubscriptionExpiresAt(subscription?.expires_at ?? "");
+    setPlanId(workspace.planId ?? "");
+    setSubscriptionStatus(workspace.subscriptionStatus ?? "");
+    setSubscriptionExpiresAt(workspace.subscriptionExpiresAt ?? "");
 
     const [designResult, assetResult, tournamentResult] = await Promise.all([
       supabase.from("broadcast_designs").select("id,organization_id,name,description,design_type,preset_id,version,config").order("design_type").order("created_at"),
-      supabase.from("broadcast_design_assets").select("*").eq("organization_id", member.organization_id).order("created_at"),
-      supabase.from("tournaments").select("id,name,design_id").eq("organization_id", member.organization_id).order("created_at", { ascending: false }),
+      supabase.from("broadcast_design_assets").select("*").eq("organization_id", workspace.organizationId).order("created_at"),
+      supabase.from("tournaments").select("id,name,design_id").eq("organization_id", workspace.organizationId).order("created_at", { ascending: false }),
     ]);
 
     if (designResult.error) setError(designResult.error.message);
