@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
+import type { InputMode, PresentationMode, TeamDraft, TournamentDraft } from "@/lib/types/tournament";
 import { createTournament } from "@/lib/tournament-repository";
 import { supabase } from "@/lib/supabase/client";
 import type { BroadcastDesignRecord } from "@/lib/broadcast-design";
@@ -32,6 +32,8 @@ export function TournamentBuilder() {
   const [totalMatches, setTotalMatches] = useState(6);
   const [totalMatchesInput, setTotalMatchesInput] = useState("6");
   const [presentationMode, setPresentationMode] = useState<PresentationMode>("PER_MATCH");
+  const [inputMode, setInputMode] = useState<InputMode>("MANUAL");
+  const [entitlementLoading, setEntitlementLoading] = useState(true);
   const [customMatches, setCustomMatches] = useState<number[]>([]);
   const [systemDesigns, setSystemDesigns] = useState<BroadcastDesignRecord[]>([]);
   const [designId, setDesignId] = useState("");
@@ -46,6 +48,60 @@ export function TournamentBuilder() {
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadTournamentEntitlements() {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (cancelled) return;
+
+      if (userError || !user) {
+        setError(userError?.message ?? "Please sign in before creating a tournament.");
+        setEntitlementLoading(false);
+        return;
+      }
+
+      const { data: membership, error: membershipError } = await supabase
+        .from("organization_members")
+        .select("organization_id,role")
+        .eq("user_id", user.id)
+        .in("role", ["OWNER", "OPERATOR"])
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (membershipError) {
+        setError(membershipError.message);
+        setEntitlementLoading(false);
+        return;
+      }
+
+      if (!membership?.organization_id) {
+        setError("No operator workspace is available for this account.");
+        setEntitlementLoading(false);
+        return;
+      }
+
+      const { data: subscription, error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .select("plan_id,status,expires_at")
+        .eq("organization_id", membership.organization_id)
+        .eq("status", "ACTIVE")
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (subscriptionError) {
+        setError(subscriptionError.message);
+      } else {
+        // Pro is the only plan entitled to OCR automation. Starter stays manual.
+        setInputMode(subscription?.plan_id === "PRO" ? "OCR" : "MANUAL");
+      }
+
+      setEntitlementLoading(false);
+    }
+
     async function loadDesignPackages() {
       const { data, error } = await supabase
         .from("broadcast_designs")
@@ -63,7 +119,10 @@ export function TournamentBuilder() {
       }
       setDesignsLoading(false);
     }
+
+    void loadTournamentEntitlements();
     void loadDesignPackages();
+
     return () => { cancelled = true; };
   }, []);
 
@@ -122,6 +181,11 @@ export function TournamentBuilder() {
       return;
     }
 
+    if (entitlementLoading) {
+      setError("Checking your plan entitlement. Please wait a moment and try again.");
+      return;
+    }
+
     submitLock.current = true;
     setSaving(true);
     try {
@@ -130,6 +194,7 @@ export function TournamentBuilder() {
         totalMatches,
         presentationMode,
         customMatches,
+        inputMode,
         designId,
         teams,
       };
@@ -215,8 +280,19 @@ export function TournamentBuilder() {
           </label>
 
           <div className="field">
-            <span>Default match input</span>
-            <div className="readonly-control">Manual / OCR capability is entitlement-controlled</div>
+            <span>Match input mode</span>
+            <div className="readonly-control" aria-live="polite">
+              {entitlementLoading
+                ? "Checking plan…"
+                : inputMode === "OCR"
+                  ? "OCR Automation · Pro"
+                  : "Manual Scoring · Starter"}
+            </div>
+            <span className="muted">
+              {inputMode === "OCR"
+                ? "OCR automation is enabled for this Pro workspace. Operator review remains required before results become official."
+                : "Manual scoring is enabled for this Starter workspace."}
+            </span>
           </div>
         </div>
 
