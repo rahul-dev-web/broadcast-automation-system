@@ -231,7 +231,11 @@ function CustomMediaStage({ asset, label }: { asset: DesignRuntimeAsset; label: 
   const isVideo = asset.mimeType?.startsWith("video/");
 
   return (
-    <section className="ff-stage ff-custom-media-stage" aria-label={label}>
+    <section
+      className="ff-stage ff-custom-media-stage"
+      aria-label={label}
+      style={{ position: "relative", width: "100%", minHeight: "100vh", height: "100vh", padding: 0, overflow: "hidden" }}
+    >
       {isVideo ? (
         <video
           src={asset.url}
@@ -240,9 +244,15 @@ function CustomMediaStage({ asset, label }: { asset: DesignRuntimeAsset; label: 
           loop
           playsInline
           className="ff-custom-stage-media"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
       ) : (
-        <img src={asset.url} alt="" className="ff-custom-stage-media" />
+        <img
+          src={asset.url}
+          alt=""
+          className="ff-custom-stage-media"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
       )}
     </section>
   );
