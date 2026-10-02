@@ -42,7 +42,7 @@ export async function createTournament(draft: TournamentDraft) {
       name: draft.name.trim(),
       total_matches: draft.totalMatches,
       organization_id: workspace.organizationId,
-      created_by: user.id,
+      created_by: workspace.userId,
       quota_exempt: false,
       pt_mode: draft.presentationMode,
       selected_pt_matches:
