@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 
 export type OperatorWorkspace = {
+  userId: string;
   organizationId: string;
   role: "OWNER" | "OPERATOR";
   planId: string | null;
@@ -55,6 +56,7 @@ export async function resolveOperatorWorkspace(): Promise<OperatorWorkspace> {
   if (!active) {
     const membership = memberships[0];
     return {
+      userId: user.id,
       organizationId: membership.organization_id,
       role: membership.role as "OWNER" | "OPERATOR",
       planId: null,
@@ -64,6 +66,7 @@ export async function resolveOperatorWorkspace(): Promise<OperatorWorkspace> {
   }
 
   return {
+    userId: user.id,
     organizationId: active.membership.organization_id,
     role: active.membership.role as "OWNER" | "OPERATOR",
     planId: active.subscription?.plan_id ?? null,
