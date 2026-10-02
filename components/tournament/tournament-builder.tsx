@@ -6,6 +6,7 @@ import type { InputMode, PresentationMode, TeamDraft, TournamentDraft } from "@/
 import { createTournament } from "@/lib/tournament-repository";
 import { supabase } from "@/lib/supabase/client";
 import type { BroadcastDesignRecord } from "@/lib/broadcast-design";
+import { resolveOperatorWorkspace } from "@/lib/operator-workspace";
 
 const MAX_TEAMS = 12;
 const PLAYER_SLOTS = 5;
@@ -50,53 +51,13 @@ export function TournamentBuilder() {
     let cancelled = false;
 
     async function loadTournamentEntitlements() {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (cancelled) return;
-
-      if (userError || !user) {
-        setError(userError?.message ?? "Please sign in before creating a tournament.");
-        setEntitlementLoading(false);
-        return;
-      }
-
-      const { data: membership, error: membershipError } = await supabase
-        .from("organization_members")
-        .select("organization_id,role")
-        .eq("user_id", user.id)
-        .in("role", ["OWNER", "OPERATOR"])
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (membershipError) {
-        setError(membershipError.message);
-        setEntitlementLoading(false);
-        return;
-      }
-
-      if (!membership?.organization_id) {
-        setError("No operator workspace is available for this account.");
-        setEntitlementLoading(false);
-        return;
-      }
-
-      const { data: subscription, error: subscriptionError } = await supabase
-        .from("subscriptions")
-        .select("plan_id,status,expires_at")
-        .eq("organization_id", membership.organization_id)
-        .eq("status", "ACTIVE")
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (subscriptionError) {
-        setError(subscriptionError.message);
-      } else {
+      try {
+        const workspace = await resolveOperatorWorkspace();
+        if (cancelled) return;
         // Pro is the only plan entitled to OCR automation. Starter stays manual.
-        setInputMode(subscription?.plan_id === "PRO" ? "OCR" : "MANUAL");
+        setInputMode(workspace.planId === "PRO" ? "OCR" : "MANUAL");
+      } catch (workspaceError) {
+        if (!cancelled) setError(workspaceError instanceof Error ? workspaceError.message : "Could not resolve the operator workspace.");
       }
 
       setEntitlementLoading(false);
