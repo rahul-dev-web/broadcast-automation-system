@@ -138,6 +138,9 @@ export async function verifyMatchResult(review: MatchReviewData) {
   if (review.matchStatus !== "REVIEW") {
     throw new Error("Only a match in REVIEW can be verified.");
   }
+  if (review.pendingKillEvents.length > 0) {
+    throw new Error("Approve the pending OCR kill stack before verifying the match.");
+  }
 
   const invalid = review.teams.some((team) => team.placement == null);
   if (invalid) throw new Error("Every active team must have a final placement before verification.");
