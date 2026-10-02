@@ -11,7 +11,7 @@ where expires_at is null;
 alter table public.broadcast_tokens
   alter column expires_at set default (now() + interval '30 days');
 
-drop index if exists public.broadcast_tokens_tournament_id_key;
+alter table public.broadcast_tokens drop constraint if exists broadcast_tokens_tournament_id_key;
 
 create index if not exists idx_broadcast_tokens_tournament_active
   on public.broadcast_tokens (tournament_id, expires_at);
