@@ -20,6 +20,7 @@ export interface TournamentDraft {
   totalMatches: number;
   presentationMode: PresentationMode;
   customMatches: number[];
+  inputMode: InputMode;
   designId: string;
   teams: TeamDraft[];
 }
