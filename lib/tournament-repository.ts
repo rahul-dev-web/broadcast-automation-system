@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
-import type { TournamentDraft } from "@/lib/types/tournament";
+import type { InputMode, TournamentDraft } from "@/lib/types/tournament";
 
 export async function createTournament(draft: TournamentDraft) {
   if (!draft.name.trim()) throw new Error("Tournament name is required.");
@@ -43,6 +43,19 @@ export async function createTournament(draft: TournamentDraft) {
 
   if (membershipError) throw membershipError;
   if (!membership?.organization_id) throw new Error("No operator workspace is available for this account.");
+
+  const { data: subscription, error: subscriptionError } = await supabase
+    .from("subscriptions")
+    .select("plan_id,status,expires_at")
+    .eq("organization_id", membership.organization_id)
+    .eq("status", "ACTIVE")
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (subscriptionError) throw subscriptionError;
+
+  // Entitlement is authoritative at persistence time. Never trust the UI's input-mode value.
+  const entitledInputMode: InputMode = subscription?.plan_id === "PRO" ? "OCR" : "MANUAL";
 
   const { data: tournament, error: tournamentError } = await supabase
     .from("tournaments")
@@ -107,7 +120,7 @@ export async function createTournament(draft: TournamentDraft) {
         tournament_id: tournament.id,
         match_number: index + 1,
         status: "PENDING",
-        input_mode: "MANUAL",
+        input_mode: entitledInputMode,
       })),
     )
     .select("id, match_number");
