@@ -152,7 +152,7 @@ export const DEFAULT_DESIGN_CONFIG: BroadcastDesignConfig = {
   stageDefaults: Object.fromEntries(
     DESIGN_STAGES.map(stage => [
       stage,
-      { background: stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "TRANSPARENT" : "FULL", panel: stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "HUD" : "CLEAN" },
+      { background: stage === "MATCH_LIVE" ? "TRANSPARENT" : "FULL", panel: stage === "MATCH_LIVE" ? "HUD" : "CLEAN" },
     ]),
   ),
   assetSlots: ASSET_SLOTS.map(item => item.slot),
