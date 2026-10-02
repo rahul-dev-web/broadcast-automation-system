@@ -25,6 +25,17 @@ export interface MatchReviewData {
   inputMode: "MANUAL" | "OCR";
   teams: MatchReviewTeam[];
   officialResultExists: boolean;
+  pendingKillEvents: PendingKillEvent[];
+}
+
+export interface PendingKillEvent {
+  id: string;
+  teamId: string;
+  teamPrefix: string;
+  killerIgn: string;
+  victimIgn: string;
+  confidence: number;
+  createdAt: string;
 }
 
 export async function getMatchReviewData(tournamentId: string, matchNumber: number): Promise<MatchReviewData> {
@@ -49,6 +60,15 @@ export async function getMatchReviewData(tournamentId: string, matchNumber: numb
     .eq("match_id", match.id)
     .order("team_id");
   if (stateError) throw stateError;
+
+  const { data: pendingKills, error: pendingKillError } = await supabase
+    .from("scoring_events")
+    .select("id,team_id,payload,created_at,teams:team_id(team_prefix)")
+    .eq("match_id", match.id)
+    .eq("event_type", "KILL_EVENT")
+    .in("status", ["DETECTED", "VALIDATED"])
+    .order("created_at", { ascending: true });
+  if (pendingKillError) throw pendingKillError;
 
   const { data: official, error: officialError } = await supabase
     .from("match_results")
@@ -80,6 +100,15 @@ export async function getMatchReviewData(tournamentId: string, matchNumber: numb
     inputMode: match.input_mode,
     teams,
     officialResultExists: Boolean(official),
+    pendingKillEvents: (pendingKills ?? []).map((event: any) => ({
+      id: String(event.id),
+      teamId: String(event.team_id ?? ""),
+      teamPrefix: String(event.teams?.team_prefix ?? ""),
+      killerIgn: String(event.payload?.killerIgn ?? "UNKNOWN"),
+      victimIgn: String(event.payload?.victimIgn ?? "UNKNOWN"),
+      confidence: Math.max(0, Math.min(1, Number(event.payload?.confidence ?? 0))),
+      createdAt: String(event.created_at),
+    })),
   };
 }
 
@@ -172,4 +201,15 @@ export async function verifyMatchResult(review: MatchReviewData) {
   });
   if (eventError) throw eventError;
   await openMatchVerifiedStage(review.tournamentId, review.matchNumber);
+}
+
+export async function approveDetectedKillEvent(eventId: string) {
+  const { error } = await supabase.rpc("approve_detected_scoring_event", { p_event_id: eventId });
+  if (error) throw error;
+}
+
+export async function approveDetectedKillStack(matchId: string) {
+  const { data, error } = await supabase.rpc("approve_detected_kill_events", { p_match_id: matchId });
+  if (error) throw error;
+  return Number(data ?? 0);
 }
