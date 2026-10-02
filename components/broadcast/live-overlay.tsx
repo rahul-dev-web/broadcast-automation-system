@@ -484,7 +484,8 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
 
   const backgroundSlot = stage === "ROSTER_1" || stage === "ROSTER_2" ? "background_roster"
     : stage === "ROOM" ? "background_room"
-    : stage === "MATCH_LIVE" || stage === "MATCH_REVIEW" ? "background_live"
+    : stage === "MATCH_LIVE" ? "background_live"
+    : stage === "MATCH_REVIEW" ? "background_result"
     : stage === "MATCH_VERIFIED" || stage === "MATCH_PT" ? "background_result"
     : stage === "OVERALL" ? "background_overall"
     : stage === "THANK_YOU" ? "outro_thank_you"
