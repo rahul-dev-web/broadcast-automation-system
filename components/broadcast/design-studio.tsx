@@ -267,7 +267,11 @@ export function BroadcastDesignStudio() {
   const systemDesigns = useMemo(() => designs.filter(item => item.design_type === "SYSTEM"), [designs]);
   const customDesigns = useMemo(() => designs.filter(item => item.design_type === "CUSTOM"), [designs]);
   const selectedAssets = useMemo(() => assets.filter(item => item.design_id === selectedId), [assets, selectedId]);
-  const stageAsset = selectedAssets.find(item => item.slot === stageBackgroundSlot(stage));
+  const backgroundSlot = stageBackgroundSlot(stage);
+  const stageAsset =
+    selectedAssets.find(item => item.slot === backgroundSlot && item.stage === stage) ??
+    selectedAssets.find(item => item.slot === backgroundSlot && !item.stage) ??
+    selectedAssets.find(item => item.slot === backgroundSlot);
   const stageAssetUrl = typeof stageAsset?.config?.publicUrl === "string" ? stageAsset.config.publicUrl : null;
   const currentStagePolicy = draft.stageDefaults[stage] ?? { background: "FULL", panel: "CLEAN" };
 
