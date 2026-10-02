@@ -227,22 +227,33 @@ function SimpleStage({ stage }: { stage: BroadcastStage }) {
   );
 }
 
+function CustomMediaStage({ asset, label }: { asset: DesignRuntimeAsset; label: string }) {
+  const isVideo = asset.mimeType?.startsWith("video/");
+
+  return (
+    <section className="ff-stage ff-custom-media-stage" aria-label={label}>
+      {isVideo ? (
+        <video
+          src={asset.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="ff-custom-stage-media"
+        />
+      ) : (
+        <img src={asset.url} alt="" className="ff-custom-stage-media" />
+      )}
+    </section>
+  );
+}
+
 function StartingStage({ introAsset }: { introAsset?: DesignRuntimeAsset }) {
   if (!introAsset) {
     return <SimpleStage stage="AUTOMATION_STARTED" />;
   }
 
-  return (
-    <section className="ff-stage ff-simple-stage" aria-label="Broadcast intro">
-      <video
-        src={introAsset.url}
-        autoPlay
-        muted
-        playsInline
-        className="ff-starting-intro"
-      />
-    </section>
-  );
+  return <CustomMediaStage asset={introAsset} label="Broadcast intro" />;
 }
 
 export function LiveOverlay({ tournamentId, token }: { tournamentId: string; token: string }) {
@@ -469,6 +480,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     : null;
   const backgroundAsset = backgroundSlot ? designAssets.find(asset => asset.slot === backgroundSlot) : undefined;
   const introAsset = designAssets.find(asset => asset.slot === "intro_starting");
+  const outroAsset = designAssets.find(asset => asset.slot === "outro_thank_you");
   const broadcastLogo = designAssets.find(asset => asset.slot === "logo_broadcast");
   const headingFont = designAssets.find(asset => asset.slot === "font_heading" || asset.slot === "font_primary");
   const bodyFont = designAssets.find(asset => asset.slot === "font_body" || asset.slot === "font_primary");
@@ -485,7 +497,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
   } as CSSProperties;
 
   const hasCustomIntro = stage === "AUTOMATION_STARTED" && Boolean(introAsset);
-  const hasCustomOutro = stage === "THANK_YOU" && Boolean(backgroundAsset);
+  const hasCustomOutro = stage === "THANK_YOU" && Boolean(outroAsset);
 
   return (
     <main className={`broadcast-overlay ff-broadcast-root stage-${stage.toLowerCase()} ${designClass}`} style={runtimeStyle}>
@@ -493,12 +505,21 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
         @font-face{font-family:BroadcastDesignHeading;src:url("${headingFont?.url ?? bodyFont?.url}") format("woff2");font-display:swap;}
         @font-face{font-family:BroadcastDesignBody;src:url("${bodyFont?.url ?? headingFont?.url}") format("woff2");font-display:swap;}
       `}</style>}
-      {!hasCustomIntro && <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>}
+      {!hasCustomIntro && !hasCustomOutro && <div className="ff-transition-layer" key={stage}><span /><i /><b>{stage.replaceAll("_", " ")}</b></div>}
 
       {hasCustomIntro ? (
         <div className="ff-starting-intro-mount">
-          <video src={introAsset?.url} autoPlay muted playsInline className="ff-starting-intro" />
+          <video
+            src={introAsset?.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="ff-starting-intro"
+          />
         </div>
+      ) : hasCustomOutro ? (
+        <CustomMediaStage asset={outroAsset!} label="Broadcast outro" />
       ) : (
         <>
           {backgroundAsset && allowBackground && backgroundAsset.mimeType?.startsWith("video/")
