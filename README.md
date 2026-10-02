@@ -1,63 +1,71 @@
 # Free Fire Tournament Broadcast Automation System
 
-Initial foundation for a Free Fire tournament scoring and broadcast overlay MVP.
+ArenaCast is a Free Fire tournament scoring and broadcast automation platform built around Next.js, Supabase, Cloudflare Pages, OBS browser-source output, Cloud OCR and a Pro-only Local Agent.
 
-## Locked product rules
-
+## Product rules
 - Maximum 12 teams per tournament.
-- Each team has exactly 5 player slots:
-  - Player 1-4: main roster
-  - Player 5: optional substitute
-- Player identity keeps registered/display name separate from in-game name.
-- Manual mode is scoring/result input only; it does not provide observer/player switching.
-- OCR mode can support final-result extraction and live observer/player detection as separate capabilities.
-- OCR output is always a proposed result until operator review and verification.
-- One shared scoring engine is used by manual and OCR inputs.
-- Points:
-  - 1 kill = 1 point
-  - 1st = 12
-  - 2nd = 9
-  - 3rd = 8
-  - 4th = 7
-  - 5th = 6
-  - 6th = 5
-  - 7th = 4
-  - 8th = 3
-  - 9th = 2
-  - 10th = 1
-  - 11th = 0
-  - 12th = 0
-- Presentation modes:
-  - PER_MATCH
-  - OVERALL_ONLY
-  - CUSTOM
-- Overall standings are compulsory after the tournament finishes.
-- Broadcast lifecycle:
-  Setup -> Roster Intro -> Room -> Match -> Review -> PT/Next Match -> Overall -> Thank You.
+- Each team has 5 player slots: Player 1-4 main roster, Player 5 optional substitute.
+- Registered/display name and in-game name remain separate.
+- Manual scoring is scoring/result input only; it does not auto-switch observers or players.
+- OCR events/results are proposed first and require operator review/verification before becoming official.
+- Manual and OCR inputs use the same scoring engine.
+- Kill = 1 point.
+- Placement points: 1st 12, 2nd 9, 3rd 8, 4th 7, 5th 6, 6th 5, 7th 4, 8th 3, 9th 2, 10th 1, 11th 0, 12th 0.
+- Broadcast lifecycle: Setup -> Roster -> Room -> Match -> Review -> Verified/PT -> Overall -> Thank You.
 
-## Current implementation
+## Current subscription model
 
-Phase 1-4 foundation:
-- Next.js + TypeScript app scaffold
-- Tournament creation UI
-- 12 team slots
-- Team name, prefix, optional logo
-- 5 player slots with substitute flag
-- Registered/display name + in-game name
-- Total match count
-- Three PT presentation modes
-- Custom PT match selector
-- Locked scoring constants
-- Initial Supabase schema draft
-- Cloudflare static-export configuration
+### Starter — ₹299 / 30 days
+- 5 tournament creations per active month
+- Manual scoring
+- Review / Verify / Publish
+- Broadcast workflow + OBS browser source
+- Four System Design Packs
+- Custom Design Studio: unavailable
+- OCR / Local Agent: unavailable
 
-## Run locally
+### Pro — ₹999 / 30 days
+- Everything in Starter
+- Custom Design Studio
+- Local OCR/CV
+- OCR-assisted result import
+- Cloud OCR fallback
+- 2,000 included Cloud OCR Units
+- Advanced data/history and automation
 
-```bash
+### Agency
+Coming Soon.
+
+## Broadcast Design Studio
+The four System Design Packs are available to Starter and Pro:
+1. Angular Arena
+2. Championship Cinematic
+3. Future Grid
+4. Minimal Broadcast
+
+Custom Design Studio is Pro-only. The entitlement is enforced both in the UI and in Supabase RLS/storage policies.
+Custom intro/outro media is treated as a stage replacement, not a background layer. Video intro/outro assets loop continuously in the browser/OBS renderer.
+
+## Architecture
+- Next.js App Router static export
+- Supabase Auth/Postgres/RLS/Realtime/Storage/Edge Functions
+- Cloudflare Pages
+- Google Vision for cloud OCR
+- Windows Local Agent for Pro OCR/CV
+- OBS browser-source broadcast overlay
+- No Render dependency
+
+## Security model
+- Publishable Supabase keys are used in browser code.
+- Secret/service credentials remain server-side in Edge Functions.
+- Platform subscription RPCs require the protected platform-admin check.
+- Custom Design CRUD/upload/assignment requires an active Pro subscription and OWNER/OPERATOR access.
+- System designs are read-only and available to Starter/Pro.
+- Broadcast tokens are hashed, expire after 30 days, and multiple active tokens can coexist.
+
+## Development
 npm install
 npm run dev
-```
+npm run build
 
-Then open http://localhost:3000.
-
-This repository is being built phase-by-phase. OCR, realtime, OBS integration, review workflow and full automation controller are intentionally implemented after the foundation is validated.
+Production database changes live under supabase/migrations/. The connected production project has also received a small number of direct SQL hotfixes during development, so remote schema/migration history should be reconciled before cloning the project to a new Supabase environment.
