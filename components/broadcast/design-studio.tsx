@@ -182,6 +182,10 @@ export function BroadcastDesignStudio() {
   const [organizationId, setOrganizationId] = useState("");
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState("");
+  const [platformRole, setPlatformRole] = useState("");
+  const [planId, setPlanId] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState("");
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [draft, setDraft] = useState<BroadcastDesignConfig>(normalizeDesign());
   const [draftName, setDraftName] = useState("New Broadcast Design");
@@ -197,6 +201,11 @@ export function BroadcastDesignStudio() {
   const selected = designs.find(item => item.id === selectedId) ?? null;
   const isSystem = selected?.design_type === "SYSTEM";
   const canEdit = role === "OWNER" || role === "OPERATOR";
+  const hasActivePro = planId === "PRO"
+    && subscriptionStatus === "ACTIVE"
+    && Boolean(subscriptionExpiresAt)
+    && new Date(subscriptionExpiresAt).getTime() > Date.now();
+  const canUseCustomDesign = hasActivePro || platformRole === "PLATFORM_ADMIN";
 
   async function load() {
     setLoading(true);
@@ -224,6 +233,15 @@ export function BroadcastDesignStudio() {
 
     setOrganizationId(member.organization_id);
     setRole(member.role);
+
+    const [{ data: profile }, { data: subscription }] = await Promise.all([
+      supabase.from("profiles").select("platform_role").eq("id", user.id).maybeSingle(),
+      supabase.from("subscriptions").select("plan_id,status,expires_at").eq("organization_id", member.organization_id).maybeSingle(),
+    ]);
+    setPlatformRole(profile?.platform_role ?? "USER");
+    setPlanId(subscription?.plan_id ?? "");
+    setSubscriptionStatus(subscription?.status ?? "");
+    setSubscriptionExpiresAt(subscription?.expires_at ?? "");
 
     const [designResult, assetResult, tournamentResult] = await Promise.all([
       supabase.from("broadcast_designs").select("id,organization_id,name,description,design_type,preset_id,version,config").order("design_type").order("created_at"),
@@ -265,6 +283,10 @@ export function BroadcastDesignStudio() {
   }
 
   function newDesign() {
+    if (!canUseCustomDesign) {
+      setError("Custom Design Studio is a Pro feature. Upgrade this workspace to Pro to create custom designs.");
+      return;
+    }
     const base = cloneDesignConfig(systemDesigns[0]?.config ?? normalizeDesign());
     setSelectedId("");
     setDraft(base);
@@ -276,7 +298,10 @@ export function BroadcastDesignStudio() {
   }
 
   function cloneSelected() {
-    if (!selected) return;
+    if (!selected || !canUseCustomDesign) {
+      setError("Custom Design Studio is a Pro feature. Upgrade this workspace to Pro to customize a system design.");
+      return;
+    }
     setSelectedId("");
     setDraft(cloneDesignConfig(selected.config));
     setDraftName(`${selected.name} Custom`);
@@ -312,6 +337,10 @@ export function BroadcastDesignStudio() {
 
   async function saveDesign() {
     if (!organizationId || !canEdit) return;
+    if (!canUseCustomDesign) {
+      setError("Custom Design Studio is a Pro feature.");
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -372,9 +401,13 @@ export function BroadcastDesignStudio() {
     }
     if (
       selectedDesign.design_type === "CUSTOM"
-      && selectedDesign.organization_id !== organizationId
+      && (!canUseCustomDesign || selectedDesign.organization_id !== organizationId)
     ) {
-      setError("This custom design belongs to another workspace.");
+      setError(
+        selectedDesign.organization_id !== organizationId
+          ? "This custom design belongs to another workspace."
+          : "Custom Design Studio is a Pro feature."
+      );
       setSaving(false);
       return;
     }
@@ -426,7 +459,7 @@ export function BroadcastDesignStudio() {
   async function uploadAsset(slot: typeof ASSET_SLOTS[number], event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !organizationId || !selectedId || isSystem || !canEdit) return;
+    if (!file || !organizationId || !selectedId || isSystem || !canEdit || !canUseCustomDesign) return;
 
     setUploadingSlot(slot.slot);
     setError("");
@@ -493,7 +526,7 @@ export function BroadcastDesignStudio() {
   }
 
   async function deleteAsset(asset: BroadcastDesignAsset) {
-    if (!canEdit || isSystem) return;
+    if (!canEdit || isSystem || !canUseCustomDesign) return;
     if (!window.confirm(`Delete "${asset.name}" from this design?`)) return;
     setSaving(true);
     const storageResult = await supabase.storage.from("broadcast-assets").remove([asset.storage_path]);
@@ -519,7 +552,9 @@ export function BroadcastDesignStudio() {
         </div>
         <div className={styles.headerActions}>
           <Link className="ghost-button" href="/dashboard/">Dashboard</Link>
-          <button className="primary-button" onClick={newDesign} disabled={!canEdit}>New custom design</button>
+          <button className="primary-button" onClick={newDesign} disabled={!canEdit || !canUseCustomDesign}>
+            {canUseCustomDesign ? "New custom design" : "Custom Design · Pro"}
+          </button>
         </div>
       </header>
 
@@ -542,8 +577,18 @@ export function BroadcastDesignStudio() {
             ))}
           </div>
 
-          <div className={styles.libraryHeader}><div><p className="eyebrow">MY DESIGNS</p><h2>Custom design packs</h2></div></div>
-          {customDesigns.length === 0 ? <p className="muted">No custom design yet. Clone a system design or create one from scratch.</p> : (
+          <div className={styles.libraryHeader}>
+            <div><p className="eyebrow">MY DESIGNS</p><h2>Custom design packs</h2></div>
+            <span className="status-pill">{canUseCustomDesign ? "PRO" : "PRO ONLY"}</span>
+          </div>
+          {!canUseCustomDesign ? (
+            <div className={styles.assetLock}>
+              Custom Design Studio is available on <strong>Pro</strong> only.
+              Your four System Design Packs remain available on Starter.
+            </div>
+          ) : customDesigns.length === 0 ? (
+            <p className="muted">No custom design yet. Clone a system design or create one from scratch.</p>
+          ) : (
             <div className={styles.cards}>
               {customDesigns.map(item => (
                 <button key={item.id} className={`${styles.card} ${selectedId === item.id ? styles.active : ""}`} onClick={() => selectDesign(item)}>
@@ -624,7 +669,13 @@ export function BroadcastDesignStudio() {
             </div>
 
             <div className={styles.actions}>
-              {isSystem ? <button className="primary-button" onClick={cloneSelected} disabled={!canEdit}>Clone & customize</button> : <button className="primary-button" onClick={() => void saveDesign()} disabled={!canEdit || saving}>{saving ? "Saving…" : selected ? "Save design" : "Create design"}</button>}
+              {isSystem ? (
+                <button className="primary-button" onClick={cloneSelected} disabled={!canEdit || !canUseCustomDesign}>Clone & customize · Pro</button>
+              ) : (
+                <button className="primary-button" onClick={() => void saveDesign()} disabled={!canEdit || !canUseCustomDesign || saving}>
+                  {saving ? "Saving…" : selected ? "Save design" : "Create design"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -634,7 +685,9 @@ export function BroadcastDesignStudio() {
               <span className="status-pill">NO ARTWORK HARD-CODED</span>
             </div>
             <p className="muted">These are generic slots. Upload any compatible font, logo, image, video or transition; the design pack stores the asset reference and metadata.</p>
-            {!selectedId || isSystem ? (
+            {!canUseCustomDesign ? (
+              <div className={styles.assetLock}>Custom asset uploads are available on Pro only. System Design Packs remain read-only.</div>
+            ) : !selectedId || isSystem ? (
               <div className={styles.assetLock}>{isSystem ? "Clone this system design first to upload assets." : "Create the custom design first, then upload assets."}</div>
             ) : (
               <div className={styles.assetGrid}>
@@ -666,7 +719,16 @@ export function BroadcastDesignStudio() {
             <div className="form-grid two">
               <label className="field"><span>Tournament</span><select value={assignment} onChange={e => setAssignment(e.target.value)} disabled={!selectedId || saving}><option value="">Choose tournament…</option>{tournaments.map(item => <option key={item.id} value={item.id}>{item.name}{item.design_id === selectedId ? " · current" : ""}</option>)}</select></label>
             </div>
-            <div className={styles.actions}><button className="primary-button" onClick={() => void assignDesign()} disabled={!selectedId || !assignment || saving}>Assign design</button><button className="ghost-button" onClick={() => void clearAssignment()} disabled={!assignment || saving}>Clear</button></div>
+            <div className={styles.actions}>
+              <button
+                className="primary-button"
+                onClick={() => void assignDesign()}
+                disabled={!selectedId || !assignment || saving || (selected?.design_type === "CUSTOM" && !canUseCustomDesign)}
+              >
+                {selected?.design_type === "CUSTOM" && !canUseCustomDesign ? "Assign · Pro only" : "Assign design"}
+              </button>
+              <button className="ghost-button" onClick={() => void clearAssignment()} disabled={!assignment || saving}>Clear</button>
+            </div>
           </div>
         </section>
       </section>
