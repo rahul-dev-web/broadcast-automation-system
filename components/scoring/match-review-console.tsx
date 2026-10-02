@@ -5,6 +5,8 @@ import {
   getMatchReviewData,
   updateReviewKills,
   verifyMatchResult,
+  approveDetectedKillEvent,
+  approveDetectedKillStack,
   type MatchReviewData,
   type MatchReviewTeam,
 } from "@/lib/match-review";
@@ -71,6 +73,22 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
     }
   }
 
+  async function approveKill(eventId: string) {
+    if (!data || data.matchStatus !== "REVIEW") return;
+    setBusy(eventId); setError("");
+    try { await approveDetectedKillEvent(eventId); await load(false); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Could not approve kill."); }
+    finally { setBusy(null); }
+  }
+
+  async function approveKillStack() {
+    if (!data || data.matchStatus !== "REVIEW" || data.pendingKillEvents.length === 0) return;
+    setBusy("kill-stack"); setError("");
+    try { await approveDetectedKillStack(data.matchId); await load(false); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Could not approve kill stack."); }
+    finally { setBusy(null); }
+  }
+
   async function verify() {
     if (!data) return;
     setBusy("verify");
@@ -91,7 +109,7 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
   const sortedTeams = [...data.teams].sort((a, b) => (a.placement ?? 99) - (b.placement ?? 99));
   const placementsReady = data.teams.length > 0 && data.teams.every((team) => team.placement !== null);
   const aliveTeams = data.teams.filter((team) => team.eliminationStatus === "ALIVE");
-  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists && placementsReady && aliveTeams.length === 1;
+  const canVerify = data.matchStatus === "REVIEW" && !data.officialResultExists && placementsReady && aliveTeams.length === 1 && data.pendingKillEvents.length === 0;
 
   return (
     <main className="match-review">
@@ -112,6 +130,9 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
           )}
           {data.matchStatus === "REVIEW" && !data.officialResultExists && !placementsReady && (
             <span className="muted">Waiting for final placements to sync…</span>
+          )}
+          {data.matchStatus === "REVIEW" && !data.officialResultExists && data.pendingKillEvents.length > 0 && (
+            <span className="muted">Approve the pending OCR kill stack before publishing the match result.</span>
           )}
           {data.matchStatus === "REVIEW" && !data.officialResultExists && placementsReady && aliveTeams.length !== 1 && (
             <span className="muted">Waiting for the final surviving team…</span>
@@ -137,6 +158,34 @@ export function MatchReviewConsole({ tournamentId, matchNumber }: { tournamentId
             : "Check placement and kills before publishing. Once verified, the match becomes immutable through this review screen."}
         </span>
       </section>
+
+      {data.inputMode === "OCR" && data.pendingKillEvents.length > 0 && (
+        <section className="panel">
+          <div className="section-title">
+            <div><p className="eyebrow">OCR KILL STACK</p><h2>{data.pendingKillEvents.length} kill{data.pendingKillEvents.length === 1 ? "" : "s"} waiting for approval</h2></div>
+            <button className="primary-button" disabled={busy !== null || data.matchStatus !== "REVIEW"} onClick={() => void approveKillStack()}>
+              {busy === "kill-stack" ? "APPROVING…" : "APPROVE KILL STACK"}
+            </button>
+          </div>
+          <div className="review-table">
+            <div className="review-head"><span>TEAM</span><span>KILLER</span><span>VICTIM</span><span>CONFIDENCE</span><span>ACTION</span></div>
+            {data.pendingKillEvents.map(event => (
+              <article className="review-row" key={event.id}>
+                <strong className="review-place">{event.teamPrefix || "TEAM"}</strong>
+                <div className="review-team"><strong>{event.killerIgn}</strong><span>KILL</span></div>
+                <div className="review-team"><strong>{event.victimIgn}</strong><span>VICTIM</span></div>
+                <div className="review-points">
+                  <strong>{Math.round(event.confidence * 100)}%</strong>
+                  <span>{event.confidence >= 0.9 ? "HIGH" : "REVIEW"}</span>
+                </div>
+                <button className="ghost-button" disabled={busy !== null} onClick={() => void approveKill(event.id)}>
+                  {busy === event.id ? "APPROVING…" : "APPROVE"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel">
         <div className="section-title">
