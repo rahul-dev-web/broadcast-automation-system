@@ -331,14 +331,45 @@ export function BroadcastDesignStudio() {
   }
 
   async function assignDesign() {
-    if (!assignment || !selectedId) return;
+    if (!assignment || !selectedId || !organizationId) return;
     setSaving(true);
     setError("");
-    const { error: updateError } = await supabase.from("tournaments").update({
-      design_id: selectedId,
-    }).eq("id", assignment);
-    if (updateError) setError(updateError.message);
-    else {
+    setMessage("");
+
+    const tournament = tournaments.find(item => item.id === assignment);
+    const selectedDesign = designs.find(item => item.id === selectedId);
+    if (!tournament) {
+      setError("Selected tournament is not available in this workspace.");
+      setSaving(false);
+      return;
+    }
+    if (!selectedDesign) {
+      setError("Selected design package is no longer available. Refresh the Design Studio and try again.");
+      setSaving(false);
+      return;
+    }
+    if (
+      selectedDesign.design_type === "CUSTOM"
+      && selectedDesign.organization_id !== organizationId
+    ) {
+      setError("This custom design belongs to another workspace.");
+      setSaving(false);
+      return;
+    }
+
+    const { data, error: updateError } = await supabase
+      .from("tournaments")
+      .update({ design_id: selectedId })
+      .eq("id", assignment)
+      .eq("organization_id", organizationId)
+      .select("id,design_id")
+      .maybeSingle();
+
+    if (updateError) {
+      setError(updateError.message);
+    } else if (!data || data.design_id !== selectedId) {
+      setError("Design assignment was not persisted. Your workspace may not have permission to update this tournament.");
+    } else {
       setTournaments(current => current.map(item => item.id === assignment ? { ...item, design_id: selectedId } : item));
       setMessage("Design synced to the tournament. The broadcast overlay will use this design pack directly.");
     }
@@ -346,11 +377,24 @@ export function BroadcastDesignStudio() {
   }
 
   async function clearAssignment() {
-    if (!assignment) return;
+    if (!assignment || !organizationId) return;
     setSaving(true);
-    const { error: updateError } = await supabase.from("tournaments").update({ design_id: null }).eq("id", assignment);
-    if (updateError) setError(updateError.message);
-    else {
+    setError("");
+    setMessage("");
+
+    const { data, error: updateError } = await supabase
+      .from("tournaments")
+      .update({ design_id: null })
+      .eq("id", assignment)
+      .eq("organization_id", organizationId)
+      .select("id,design_id")
+      .maybeSingle();
+
+    if (updateError) {
+      setError(updateError.message);
+    } else if (!data || data.design_id !== null) {
+      setError("Tournament design could not be cleared. Refresh the Design Studio and try again.");
+    } else {
       setTournaments(current => current.map(item => item.id === assignment ? { ...item, design_id: null } : item));
       setMessage("Tournament design assignment cleared.");
     }
