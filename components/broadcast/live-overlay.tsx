@@ -13,7 +13,7 @@ interface OverlayScore {
   placement: number | null; killPoints: number; positionPoints: number; totalPoints: number;
   eliminationStatus: "ALIVE" | "ELIMINATED";
 }
-interface DesignRuntimeAsset { slot: string; mimeType: string | null; url: string; }
+interface DesignRuntimeAsset { stage: string | null; slot: string; mimeType: string | null; url: string; }
 interface OverlayData {
   tournamentName: string; totalMatches: number; teams: OverlayTeam[];
   scores: OverlayScore[]; overall: OverlayScore[]; loading: boolean; error: string;
@@ -381,6 +381,7 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
           ? config.publicUrl
           : overlaySupabase.storage.from("broadcast-assets").getPublicUrl(asText(asset.storage_path)).data.publicUrl;
         return {
+          stage: typeof asset.stage === "string" ? asset.stage : null,
           slot: asText(asset.slot),
           mimeType: typeof asset.mime_type === "string" ? asset.mime_type : null,
           url: publicUrl,
@@ -488,7 +489,11 @@ export function LiveOverlay({ tournamentId, token }: { tournamentId: string; tok
     : stage === "OVERALL" ? "background_overall"
     : stage === "THANK_YOU" ? "outro_thank_you"
     : null;
-  const backgroundAsset = backgroundSlot ? designAssets.find(asset => asset.slot === backgroundSlot) : undefined;
+  const backgroundAsset = backgroundSlot
+    ? designAssets.find(asset => asset.slot === backgroundSlot && asset.stage === stage)
+      ?? designAssets.find(asset => asset.slot === backgroundSlot && !asset.stage)
+      ?? designAssets.find(asset => asset.slot === backgroundSlot)
+    : undefined;
   const introAsset = designAssets.find(asset => asset.slot === "intro_starting");
   const outroAsset = designAssets.find(asset => asset.slot === "outro_thank_you");
   const broadcastLogo = designAssets.find(asset => asset.slot === "logo_broadcast");
