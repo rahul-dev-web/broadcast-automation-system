@@ -218,7 +218,7 @@ export function BroadcastDesignStudio() {
     }
     setUserId(user.id);
 
-    let workspace;
+    let workspace: Awaited<ReturnType<typeof resolveOperatorWorkspace>>;
     try {
       workspace = await resolveOperatorWorkspace();
     } catch (workspaceError) {
