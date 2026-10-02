@@ -63,7 +63,7 @@ export async function getMatchReviewData(tournamentId: string, matchNumber: numb
 
   const { data: pendingKills, error: pendingKillError } = await supabase
     .from("scoring_events")
-    .select("id,team_id,payload,created_at,teams:team_id(team_prefix)")
+    .select("id,team_id,payload,created_at")
     .eq("match_id", match.id)
     .eq("event_type", "KILL_EVENT")
     .in("status", ["DETECTED", "VALIDATED"])
@@ -103,7 +103,7 @@ export async function getMatchReviewData(tournamentId: string, matchNumber: numb
     pendingKillEvents: (pendingKills ?? []).map((event: any) => ({
       id: String(event.id),
       teamId: String(event.team_id ?? ""),
-      teamPrefix: String(event.teams?.team_prefix ?? ""),
+      teamPrefix: String(teams.find(team => team.id === String(event.team_id ?? ""))?.teamPrefix ?? ""),
       killerIgn: String(event.payload?.killerIgn ?? "UNKNOWN"),
       victimIgn: String(event.payload?.victimIgn ?? "UNKNOWN"),
       confidence: Math.max(0, Math.min(1, Number(event.payload?.confidence ?? 0))),
