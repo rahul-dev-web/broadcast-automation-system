@@ -103,6 +103,8 @@ function DesignPreview({
   } as CSSProperties;
   const motionType = design.animations.stage.type.toLowerCase().replaceAll("_", "-");
   const densityClass = `density-${design.layout.density.toLowerCase()}`;
+  const customOutro = stage === "THANK_YOU" && Boolean(backgroundUrl);
+  const customOutroIsVideo = backgroundMime?.startsWith("video/");
   const rootClass = `ff-broadcast-root stage-${stage.toLowerCase()} ${previewDesignClass(design.layout.style)} ${densityClass} ${styles[`motion-${motionType}`] ?? ""}`;
   return (
     <div className={styles.previewViewport} ref={viewportRef}>
@@ -112,6 +114,26 @@ function DesignPreview({
           ${headingFontUrl ? `@font-face{font-family:BroadcastPreviewHeading;src:url("${headingFontUrl}");font-display:swap;}` : ""}
           ${bodyFontUrl ? `@font-face{font-family:BroadcastPreviewBody;src:url("${bodyFontUrl}");font-display:swap;}` : ""}
         `}</style>}
+        {customOutro && backgroundUrl && (
+          customOutroIsVideo ? (
+            <video
+              src={backgroundUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-label="Broadcast outro preview"
+              style={{ position: "absolute", inset: 0, zIndex: 999, width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }}
+            />
+          ) : (
+            <img
+              src={backgroundUrl}
+              alt=""
+              aria-label="Broadcast outro preview"
+              style={{ position: "absolute", inset: 0, zIndex: 999, width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }}
+            />
+          )
+        )}
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("video/") && <video className="ff-design-background" src={backgroundUrl} autoPlay muted loop playsInline />}
         {backgroundUrl && !isTransparent && backgroundMime?.startsWith("image/") && <img className="ff-design-background" src={backgroundUrl} alt="" />}
         {isTransparent && <div className={styles.transparencyGrid} />}
