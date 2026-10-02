@@ -1,48 +1,67 @@
 # SaaS access model
 
-## Live pricing
+## Current pricing
 
 - **Starter — ₹299 / 30 days**
-  - First activation: 5 tournament creations
-  - Renewal: 4 tournament creations
-  - Add-on during an active month: ₹100 for 2 additional tournament credits
-  - Manual scoring workflow is the currently usable product
+  - 5 tournament creations per active month
+  - Add-on: 2 additional tournament credits for ₹100
+  - Manual scoring workflow
+  - Broadcast scene workflow and OBS browser-source overlay
+  - **Four System Design Packs**
+  - **No Custom Design Studio**
+  - No Local OCR/CV or Cloud OCR
+
 - **Pro — ₹999 / 30 days**
-  - 15 tournament creations
-  - ₹150 for 2 additional tournament credits
-  - Coming Soon / not activatable yet
-  - Planned OCR scope: delayed OCR auto calculation at about 30 seconds latency
+  - 5 tournament creations per active month
+  - 2,000 included Cloud OCR Units
+  - Add-on: 2 tournament credits + 1,000 OCR Units
+  - Everything in Starter
+  - **Custom Design Studio**
+  - Local OCR/CV
+  - OCR-assisted result import
+  - Cloud OCR fallback
+  - Advanced data/history and automation features
+
 - **Agency — Coming Soon**
-  - Realtime auto calculation
+  - Realtime automation
   - Player tracking
   - Advanced broadcast automation
   - Multi-operator workspace
 
+## Design entitlement
+
+The four built-in System Design Packs are available to both Starter and Pro:
+
+1. Angular Arena
+2. Championship Cinematic
+3. Future Grid
+4. Minimal Broadcast
+
+Custom Design Studio is a **Pro-only** entitlement.
+
+The Pro requirement is enforced at multiple layers:
+
+- Design Studio UI hides/locks custom creation, cloning, editing and uploads for Starter.
+- Database RLS blocks Starter users from creating, editing or deleting custom design records/assets.
+- Storage policies block Starter users from uploading, updating or deleting custom design assets.
+- Tournament design validation allows System designs to Starter/Pro, while Custom designs require an active Pro subscription.
+- Existing custom designs are not deleted during downgrade; they remain data owned by the organization and can continue to be rendered by an already-assigned public broadcast until the normal broadcast-token rules apply. Custom management resumes when the workspace has an active Pro subscription.
+
 ## Access model
 
-Supabase Auth provides customer sessions. Each user gets an isolated organization workspace and an OWNER membership. The the designated platform administrator account (`jaraho9@gmail.com`)
+Supabase Auth provides customer sessions. Each user belongs to an isolated organization workspace with an OWNER membership. Platform administration is a separate protected role.
 
-The connected Supabase project currently has the SaaS migration applied as 20260930050228_saas_memberships_multitenancy_v1. Existing development tournaments are retained and grandfathered as quota-exempt; they are assigned to the first platform workspace when the the designated platform administrator account (`jaraho9@gmail.com`)
+Membership activation is manual at this stage. The platform admin can activate or renew Starter/Pro memberships and add tournament credits. No payment gateway is connected yet.
 
-Membership activation is manual at this stage. The platform admin can activate or renew Starter for 30 days and add two tournament credits at a time. No payment gateway is connected yet.
-
-Public OBS overlays use a per-tournament broadcast token. The token is scoped to one tournament and can be rotated; the overlay URL is intended to remain private.
+Public OBS overlays use per-tournament broadcast tokens. Tokens are hashed in the database and expire after 30 days. Multiple active tokens may exist for one tournament, so generating a new OBS URL does not invalidate an existing Browser Source.
 
 ## Production database note
 
-The SaaS schema was applied to the connected Supabase project during this implementation. Before moving the project to another Supabase environment, pull the remote schema into the repository migration history so the database changes are reproducible in version control.
+The repository contains the intended schema and migrations, but the connected production database has also received a few direct SQL hotfixes during development. The live schema must therefore be treated as authoritative when auditing production. Before moving to another Supabase environment, reconcile the remote migration history/schema so every production change is reproducible from version control.
 
+## Security boundary
 
-## Platform administrator
+The frontend is not the authorization boundary. Supabase grants, RLS policies, protected database functions and Edge Function checks enforce tenant and plan access.
 
-Platform Admin is a protected platform role. It is not assigned to the first account anymore.
+Platform subscription RPCs require the protected platform-admin helper. Custom design CRUD and asset operations require an active Pro membership plus OWNER/OPERATOR workspace access.
 
-The public signup trigger always creates `USER` accounts. The designated Auth account is provisioned separately and then marked `PLATFORM_ADMIN`; the database helper additionally requires that exact Auth email plus the profile role. Normal authenticated users cannot update the authorization-sensitive profile columns through the Data API.
-
-The frontend `/admin/` route is an additional UX gate, but Supabase RLS and the guarded platform subscription RPCs remain the security boundary.
-
-## Broadcast themes
-
-Broadcast themes are stored in `public.broadcast_themes`. System presets are read-only presets; organizations can clone a preset into a custom theme and assign it to a tournament.
-
-The theme editor previews the same visual contract used by the production browser-source overlay. Gameplay HUD stages can remain transparent while result/roster/room stages can use a branded background. The assigned theme is resolved by the live overlay through the tournament's `theme_id`, so the saved configuration stays synchronized between the studio, Supabase and OBS/browser-source output.
