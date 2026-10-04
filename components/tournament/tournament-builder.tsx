@@ -54,8 +54,8 @@ export function TournamentBuilder() {
       try {
         const workspace = await resolveOperatorWorkspace();
         if (cancelled) return;
-        // Pro is the only plan entitled to OCR automation. Starter stays manual.
-        setInputMode(workspace.planId === "PRO" ? "OCR" : "MANUAL");
+        // Pro is currently disabled. All client-facing tournaments use Starter manual scoring.
+        setInputMode("MANUAL");
       } catch (workspaceError) {
         if (!cancelled) setError(workspaceError instanceof Error ? workspaceError.message : "Could not resolve the operator workspace.");
       }
@@ -245,14 +245,10 @@ export function TournamentBuilder() {
             <div className="readonly-control" aria-live="polite">
               {entitlementLoading
                 ? "Checking plan…"
-                : inputMode === "OCR"
-                  ? "OCR Automation · Pro"
-                  : "Manual Scoring · Starter"}
+                : "Manual Scoring · Starter"}
             </div>
             <span className="muted">
-              {inputMode === "OCR"
-                ? "OCR automation is enabled for this Pro workspace. Operator review remains required before results become official."
-                : "Manual scoring is enabled for this Starter workspace."}
+              "Manual scoring is enabled for the current Starter product."
             </span>
           </div>
         </div>
