@@ -42,7 +42,8 @@ const animationLabels: Record<string, string> = {
 function stageBackgroundSlot(stage: DesignStage) {
   if (stage === "ROSTER_1" || stage === "ROSTER_2") return "background_roster";
   if (stage === "ROOM") return "background_room";
-  if (stage === "MATCH_LIVE" || stage === "MATCH_REVIEW") return "background_live";
+  if (stage === "MATCH_LIVE") return "background_live";
+  if (stage === "MATCH_REVIEW") return "background_result";
   if (stage === "MATCH_VERIFIED" || stage === "MATCH_PT") return "background_result";
   if (stage === "OVERALL") return "background_overall";
   return "outro_thank_you";
@@ -202,11 +203,11 @@ export function BroadcastDesignStudio() {
   const selected = designs.find(item => item.id === selectedId) ?? null;
   const isSystem = selected?.design_type === "SYSTEM";
   const canEdit = role === "OWNER" || role === "OPERATOR";
-  const hasActivePro = planId === "PRO"
+  const hasActiveStarter = planId === "STARTER"
     && subscriptionStatus === "ACTIVE"
     && Boolean(subscriptionExpiresAt)
     && new Date(subscriptionExpiresAt).getTime() > Date.now();
-  const canUseCustomDesign = hasActivePro || platformRole === "PLATFORM_ADMIN";
+  const canUseCustomDesign = hasActiveStarter || platformRole === "PLATFORM_ADMIN";
 
   async function load() {
     setLoading(true);
@@ -286,7 +287,7 @@ export function BroadcastDesignStudio() {
 
   function newDesign() {
     if (!canUseCustomDesign) {
-      setError("Custom Design Studio is a Pro feature. Upgrade this workspace to Pro to create custom designs.");
+      setError("Custom Design Studio is available on Starter.");
       return;
     }
     const base = cloneDesignConfig(systemDesigns[0]?.config ?? normalizeDesign());
@@ -301,7 +302,7 @@ export function BroadcastDesignStudio() {
 
   function cloneSelected() {
     if (!selected || !canUseCustomDesign) {
-      setError("Custom Design Studio is a Pro feature. Upgrade this workspace to Pro to customize a system design.");
+      setError("Custom Design Studio is available on Starter.");
       return;
     }
     setSelectedId("");
@@ -340,7 +341,7 @@ export function BroadcastDesignStudio() {
   async function saveDesign() {
     if (!organizationId || !canEdit) return;
     if (!canUseCustomDesign) {
-      setError("Custom Design Studio is a Pro feature.");
+      setError("Custom Design Studio is available on Starter.");
       return;
     }
     setSaving(true);
@@ -408,7 +409,7 @@ export function BroadcastDesignStudio() {
       setError(
         selectedDesign.organization_id !== organizationId
           ? "This custom design belongs to another workspace."
-          : "Custom Design Studio is a Pro feature."
+          : "Custom Design Studio is available on Starter."
       );
       setSaving(false);
       return;
@@ -555,7 +556,7 @@ export function BroadcastDesignStudio() {
         <div className={styles.headerActions}>
           <Link className="ghost-button" href="/dashboard/">Dashboard</Link>
           <button className="primary-button" onClick={newDesign} disabled={!canEdit || !canUseCustomDesign}>
-            {canUseCustomDesign ? "New custom design" : "Custom Design · Pro"}
+            {canUseCustomDesign ? "New custom design" : "Custom Design · Starter"}
           </button>
         </div>
       </header>
@@ -581,7 +582,7 @@ export function BroadcastDesignStudio() {
 
           <div className={styles.libraryHeader}>
             <div><p className="eyebrow">MY DESIGNS</p><h2>Custom design packs</h2></div>
-            <span className="status-pill">{canUseCustomDesign ? "PRO" : "PRO ONLY"}</span>
+            <span className="status-pill">{canUseCustomDesign ? "STARTER" : "STARTER ONLY"}</span>
           </div>
           {!canUseCustomDesign ? (
             <div className={styles.assetLock}>
@@ -672,7 +673,7 @@ export function BroadcastDesignStudio() {
 
             <div className={styles.actions}>
               {isSystem ? (
-                <button className="primary-button" onClick={cloneSelected} disabled={!canEdit || !canUseCustomDesign}>Clone & customize · Pro</button>
+                <button className="primary-button" onClick={cloneSelected} disabled={!canEdit || !canUseCustomDesign}>Clone & customize · Starter</button>
               ) : (
                 <button className="primary-button" onClick={() => void saveDesign()} disabled={!canEdit || !canUseCustomDesign || saving}>
                   {saving ? "Saving…" : selected ? "Save design" : "Create design"}
@@ -688,7 +689,7 @@ export function BroadcastDesignStudio() {
             </div>
             <p className="muted">These are generic slots. Upload any compatible font, logo, image, video or transition; the design pack stores the asset reference and metadata.</p>
             {!canUseCustomDesign ? (
-              <div className={styles.assetLock}>Custom asset uploads are available on Pro only. System Design Packs remain read-only.</div>
+              <div className={styles.assetLock}>Custom asset uploads are available on Starter. System Design Packs remain read-only.</div>
             ) : !selectedId || isSystem ? (
               <div className={styles.assetLock}>{isSystem ? "Clone this system design first to upload assets." : "Create the custom design first, then upload assets."}</div>
             ) : (
