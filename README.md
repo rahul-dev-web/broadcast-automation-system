@@ -21,17 +21,13 @@ ArenaCast is a Free Fire tournament scoring and broadcast automation platform bu
 - Review / Verify / Publish
 - Broadcast workflow + OBS browser source
 - Four System Design Packs
-- Custom Design Studio: unavailable
+- Custom Design Studio + asset uploads
 - OCR / Local Agent: unavailable
 
-### Pro — ₹999 / 30 days
-- Everything in Starter
-- Custom Design Studio
-- Local OCR/CV
-- OCR-assisted result import
-- Cloud OCR fallback
-- 2,000 included Cloud OCR Units
-- Advanced data/history and automation
+### Pro
+Coming Soon.
+- No activation or payment is available while Pro is disabled.
+- The implemented OCR / automation code remains in the repository for a future release.
 
 ### Agency
 Coming Soon.
@@ -43,15 +39,15 @@ The four System Design Packs are available to Starter and Pro:
 3. Future Grid
 4. Minimal Broadcast
 
-Custom Design Studio is Pro-only. The entitlement is enforced both in the UI and in Supabase RLS/storage policies.
+Custom Design Studio is temporarily included with Starter. The entitlement is enforced both in the UI and in Supabase RLS/storage policies.
 Custom intro/outro media is treated as a stage replacement, not a background layer. Video intro/outro assets loop continuously in the browser/OBS renderer.
 
 ## Architecture
 - Next.js App Router static export
 - Supabase Auth/Postgres/RLS/Realtime/Storage/Edge Functions
 - Cloudflare Pages
-- Google Vision for cloud OCR
-- Windows Local Agent for Pro OCR/CV
+- Google Vision for future cloud OCR
+- Windows Local Agent for future OCR/CV
 - OBS browser-source broadcast overlay
 - No Render dependency
 
@@ -59,7 +55,7 @@ Custom intro/outro media is treated as a stage replacement, not a background lay
 - Publishable Supabase keys are used in browser code.
 - Secret/service credentials remain server-side in Edge Functions.
 - Platform subscription RPCs require the protected platform-admin check.
-- Custom Design CRUD/upload/assignment requires an active Pro subscription and OWNER/OPERATOR access.
+- Custom Design CRUD/upload/assignment requires an active Starter subscription and OWNER/OPERATOR access.
 - System designs are read-only and available to Starter/Pro.
 - Broadcast tokens are hashed, expire after 30 days, and multiple active tokens can coexist.
 
